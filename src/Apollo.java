@@ -8,28 +8,6 @@ import java.util.Scanner;
 
 /* A program to analyze music listening trends and patterns. */
 public class Apollo {
-
-        /*
-         * STEPS TO DOWNLOAD THE TEXT FILE YOU NEED FOR APOLLO♯
-         *      1. visit this website: <last.fm>
-         *            - log-in to your Last.fm account
-         *            - click on your profile picture in the top right
-         *            - click "Settings"
-         *            - click "Privacy"
-         *            - under the header "Recent listening", make sure that the feature "Hide recent listening information" is turned off
-         *      2. visit this website: <https://mainstream.ghan.nl/export.html>
-         *            - enter in the following options:
-         *                  • Last.fm username = enter in your Last.fm username       [make sure that your account ]
-         *                  • 'select type' = choose "Scrobbles"
-         *                  • 'select format' = choose "CSV"
-         *                  • leave 'Previous timestamp' blank
-         *            - click "Go" and wait for your pages to be retrieved
-         *      3. open the CSV file in Microsoft Excel
-         *            - fully delete columns titled: "uts", "artist_mbid", "album_mbid" and "track_mbid"
-         *            - save your updated CSV
-         *                  • 'File format' = Tab delimited Text (.txt)
-         *      4. move your new text file into the directory where the Apollo♯ Java program will be run
-         */
         
     public static void main(String[] args) throws InterruptedException {
         Scanner keyboard = new Scanner(System.in);
