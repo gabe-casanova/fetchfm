@@ -9,12 +9,12 @@ Steps to correctly download your Last.fm data needed for this application to run
         - click "Settings"
         - click "Privacy"
         - under the header "Recent listening", make sure that the feature "Hide recent listening information" is toggled off
-   2. visit the website <https://mainstream.ghan.nl/export.html>
-        - enter the following options:
-              - 'Last.fm username': enter in your Last.fm username
-              - 'select type': choose "Scrobbles"
-              - 'select format': choose "CSV"
-              - 'Previous timestamp': leave blank
+   2. visit the website <https://mainstream.ghan.nl/export.html> and enter the following options
+        - 'Last.fm username': enter in your Last.fm username
+        - 'Last.fm username': enter in your Last.fm username
+        - 'select type': choose "Scrobbles"
+        - 'select format': choose "CSV"
+        - 'Previous timestamp': leave blank
         - click "Go" and wait for your pages to be retrieved
     3. open the CSV file in Microsoft Excel
         - fully delete the columns titled: "uts", "artist_mbid", "album_mbid", and "track_mbid"
