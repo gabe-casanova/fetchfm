@@ -1,6 +1,6 @@
 # apollo-program
 
-Apollo♯ is a java program that provides users with functionality to analyze their music listening patterns with data exported from Last.fm
+Apollo♯ is a Java program that provides users with extended functionality to analyze their music listening habits with data exported from their Last.fm account.
 
 Steps to correctly download your Last.fm data:
    1. log-in to your Last.gm account
