@@ -23,18 +23,18 @@ public class Apollo {
      */
     private static void showMenu() {
         System.out.println();
-        System.out.println(ANSI.YELLOW_UNDERLINED + "Available Options:" + ANSI.RESET);
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "1" + ANSI.RESET + " - see your scrobbles for a specific date");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "2" + ANSI.RESET + " - see the overall number of times you've listened to a S/A/A (" + ANSI.YELLOW_UNDERLINED + "stands for \"song, artist, or album\" " + ANSI.RESET + ")");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "3" + ANSI.RESET + " - see your most listened to S/A/A for a specific date");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "4" + ANSI.RESET + " - see your most listened to S/A/A of all time");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "5" + ANSI.RESET + " - see your longest consecutively listened to S/A/A");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "6" + ANSI.RESET + " - get the average number of scrobbles you track per day");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "7" + ANSI.RESET + " - get the overall number of scrobbles you've listened to");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "8" + ANSI.RESET + " - get the total number of days you've scrobbled on");
-        System.out.println(" Enter " + ANSI.YELLOW_BOLD + "9" + ANSI.RESET + " - print a summary of all your scrobbles in alphabetical order");
-        System.out.println("Enter " + ANSI.YELLOW_BOLD + "10" + ANSI.RESET + " - print all of your scrobbles in chronological order (" + ANSI.YELLOW_UNDERLINED + "high volume request" + ANSI.RESET + ")");
-        System.out.println("Enter " + ANSI.YELLOW_BOLD + "11" + ANSI.RESET + " - quit the program");
+        System.out.println(ANSI.YELLOW_BOLD + "Available Options:" + ANSI.RESET);
+        System.out.println(" Enter " + ANSI.YELLOW + "1" + ANSI.RESET + " to print out all of the scrobbles you've listened to on a specific date");
+        System.out.println(" Enter " + ANSI.YELLOW + "2" + ANSI.RESET + " to get the overall number of times you've listened to a S/A/A (" + ANSI.YELLOW_UNDERLINED + "stands for \"song, artist, or album\"" + ANSI.RESET + ")");
+        System.out.println(" Enter " + ANSI.YELLOW + "3" + ANSI.RESET + " to set your most listened to S/A/A on a specific date");
+        System.out.println(" Enter " + ANSI.YELLOW + "4" + ANSI.RESET + " to see your most listened to S/A/A of all time");
+        System.out.println(" Enter " + ANSI.YELLOW + "5" + ANSI.RESET + " to see your longest consecutively listened to S/A/A");
+        System.out.println(" Enter " + ANSI.YELLOW + "6" + ANSI.RESET + " to calculate the average number of scrobbles you log per day");
+        System.out.println(" Enter " + ANSI.YELLOW + "7" + ANSI.RESET + " to calculate the overall number of scrobbles you've listened to");
+        System.out.println(" Enter " + ANSI.YELLOW + "8" + ANSI.RESET + " to calculate the total number of days you've scrobbled on");
+        System.out.println(" Enter " + ANSI.YELLOW + "9" + ANSI.RESET + " to print an alphabetical summary of all your scrobbles");
+        System.out.println(" Enter " + ANSI.YELLOW + "10" + ANSI.RESET + " to print all your scrobbles in chronological order (" + ANSI.YELLOW_UNDERLINED + "high volume request" + ANSI.RESET + ")");
+        System.out.println(" Enter " + ANSI.YELLOW + "11" + ANSI.RESET + " to quit the program");
         System.out.println();
     }
 
@@ -63,8 +63,7 @@ public class Apollo {
         } while(myChoice != MenuChoices.QUIT);
         keyboard.close();
         System.out.println();
-        System.out.println("Thanks for using " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + "!");
-        System.out.println("We hope to see you back soon :)");
+        System.out.println("Thanks for using " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + ", we hope to see you back soon!");
         System.out.println();
     }
 
@@ -241,7 +240,7 @@ public class Apollo {
         // Prompt user for request type (song, artist, or album) to alphabetize
         System.out.println();
         System.out.println("Would you like to alphabetize your summary by song, artist, or album name?");
-        System.out.print("Enter " + ANSI.BRIGHT_CYAN_BOLD + "song " + ANSI.RESET + "to sort by song name, " +  ANSI.BRIGHT_CYAN_BOLD
+        System.out.print("Type " + ANSI.BRIGHT_CYAN_BOLD + "song " + ANSI.RESET + "to sort by song name, " +  ANSI.BRIGHT_CYAN_BOLD
             + "artist " + ANSI.RESET + "for artist name, or " + ANSI.BRIGHT_CYAN_BOLD + "album " + ANSI.RESET + "for album name: " + ANSI.BRIGHT_CYAN);
         String request = keyboard.nextLine();
         System.out.println(ANSI.RESET);
@@ -312,7 +311,7 @@ public class Apollo {
      */
     private static String askForSAAInput(Scanner keyboard) {
         System.out.println();
-        System.out.print("Enter " + ANSI.BRIGHT_CYAN_BOLD + "song " + ANSI.RESET + "to search for a song, " +  ANSI.BRIGHT_CYAN_BOLD
+        System.out.print("Type " + ANSI.BRIGHT_CYAN_BOLD + "song " + ANSI.RESET + "to search for a song, " +  ANSI.BRIGHT_CYAN_BOLD
             + "artist " + ANSI.RESET + "for an artist, or " + ANSI.BRIGHT_CYAN_BOLD + "album " + ANSI.RESET + "for an album: " + ANSI.BRIGHT_CYAN);
         String result = keyboard.nextLine();
         System.out.println(ANSI.RESET);
@@ -442,7 +441,7 @@ public class Apollo {
      */
     private static String welcome(Scanner keyboard) {
         System.out.println();
-        System.out.println("Welcome to " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + " — a tool to analyze your Last.fm music listening trends!");
+        System.out.println("Welcome to " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + ", a tool to analyze your Last.fm music listening habits!");
         System.out.println();
         return askForFileName(keyboard);
     }
@@ -480,14 +479,15 @@ public class Apollo {
      * Ensure that the user entered an int into the keyboard.
      */
     private static int getInt(Scanner sc) {
-        System.out.print("Enter " + ANSI.YELLOW_BOLD + "Choice #" + ANSI.RESET + ": ");
+        System.out.print(ANSI.WHITE_UNDERLINED + "Enter Choice:" + ANSI.RESET + " " + ANSI.YELLOW);
         while (!sc.hasNextInt()) {
             String invalidResult = sc.next();
+            System.out.println(ANSI.RESET);
+            System.out.println(" * Sorry, but " + ANSI.BRIGHT_CYAN_BOLD + invalidResult + ANSI.RESET + " is not a valid choice!");
             System.out.println();
-            System.out.println(" * Sorry, but " +ANSI.BRIGHT_CYAN_BOLD + invalidResult + ANSI.RESET + " is not a valid choice!");
-            System.out.println();
-            System.out.print("Enter " + ANSI.YELLOW_BOLD + "Choice #" + ANSI.RESET + ": ");
+            System.out.print(ANSI.WHITE_UNDERLINED + "Enter Choice:" + ANSI.RESET + " " + ANSI.YELLOW);
         }
+        System.out.print(ANSI.RESET);
         return sc.nextInt();
     }
 

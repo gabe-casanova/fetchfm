@@ -250,9 +250,8 @@ public class Catalog implements Comparators {
 	/* Prints out to the console an error message that the requested date was not within range. */
 	private void invalidDateErrorMessage(LocalDate startRange, LocalDate endRange, LocalDate requestedDate) throws InterruptedException {
 		DateTimeFormatter myFormat = DateTimeFormatter.ofPattern("M/d/uuuu");
-		System.out.println();
 		System.out.print(" * Sorry, but " + ANSI.BRIGHT_CYAN_BOLD + requestedDate.format(myFormat) + ANSI.RESET + " is not within the range of your scrobbled data: ");
-		System.out.print(ANSI.BRIGHT_CYAN + startRange.format(myFormat) + ANSI.RESET + " - " + ANSI.BRIGHT_CYAN + endRange.format(myFormat) + ANSI.RESET + ".");
+		System.out.println(ANSI.BRIGHT_CYAN + startRange.format(myFormat) + ANSI.RESET + " - " + ANSI.BRIGHT_CYAN + endRange.format(myFormat) + ANSI.RESET + ".");
 	}
 
 	/*
@@ -712,7 +711,7 @@ public class Catalog implements Comparators {
 			String numFormat = "%" + maxLength + "s"; // generate the necessary first parameter for String.format()
 
 			System.out.print(ANSI.BRIGHT_WHITE_BOLD + String.format(numFormat, numListensWithCommas)); // right-justified
-			System.out.println(ANSI.BRIGHT_CYAN_BOLD + "  " + key + ANSI.RESET + " [" + arr.get(0).getTrack().getArtist() + "]");
+			System.out.println(ANSI.BRIGHT_CYAN + "  " + key + ANSI.RESET + " [" + arr.get(0).getTrack().getArtist() + "]");
 		}
 		System.out.println();
 	}
@@ -733,7 +732,7 @@ public class Catalog implements Comparators {
 			String numFormat = "%" + maxLength + "s"; // generate the necessary first parameter for String.format()
 
 			System.out.print(ANSI.BRIGHT_WHITE_BOLD + String.format(numFormat, numListensWithCommas)); // right-justified
-			System.out.println(ANSI.BRIGHT_CYAN + "  " + key + ANSI.RESET);
+			System.out.println(ANSI.RESET + "  " + key);
 		}
 		System.out.println();
 	}
@@ -754,7 +753,7 @@ public class Catalog implements Comparators {
 			String numFormat = "%" + maxLength + "s"; // generate the necessary first parameter for String.format()
 
 			System.out.print(ANSI.BRIGHT_WHITE_BOLD + String.format(numFormat, numListensWithCommas)); // right-justified
-			System.out.println(ANSI.BRIGHT_CYAN_BOLD + "  " + key + ANSI.RESET + " [" + arr.get(0).getTrack().getArtist() + "]");
+			System.out.println(ANSI.BRIGHT_CYAN + "  " + key + ANSI.RESET + " [" + arr.get(0).getTrack().getArtist() + "]");
 		}
 		System.out.println();
 	}
