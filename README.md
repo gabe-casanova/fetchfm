@@ -3,7 +3,7 @@
 Apollo♯ is a Java program that provides Last.fm users with extended functionality to analyze their music listening habits with data exported from their Last.fm account.
 
 Steps to correctly download your Last.fm data:
-   1. log-in to your Last.gm account
+   1. log-in to your Last.fm account
         - click on your profile picture
         - click "Settings"
         - click "Privacy"
