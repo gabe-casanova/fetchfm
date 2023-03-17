@@ -1,3 +1,4 @@
 *.txt
-api_key.txt
-user_agent.txt
+*.png
+scrobbled_data/
+usernames/
