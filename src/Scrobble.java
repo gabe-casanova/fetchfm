@@ -1,8 +1,6 @@
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
+import java.util.*;
+import java.time.*;
+import java.time.format.*;
 
 /* A class to represent a Scrobble object (contains track and term info). */
 public class Scrobble {
@@ -42,7 +40,6 @@ public class Scrobble {
 	
 	/* 
 	 * Return the next token in the Scanner. Uses tab delimiting.
-	 * Method exclusively used within the constructor.
 	 * Removes any single quote characters from the String.
 	 */
 	private String getNextToken(Scanner sc) {

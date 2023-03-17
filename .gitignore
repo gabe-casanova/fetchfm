@@ -1,2 +1,3 @@
-# ignore all text files
 *.txt
+api_key.txt
+user_agent.txt

@@ -1,11 +1,6 @@
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Scanner;
+import java.util.*;
+import java.time.*;
+import java.time.format.*;
 
 /* A collection of Scrobbles. */
 public class Catalog implements Comparators {

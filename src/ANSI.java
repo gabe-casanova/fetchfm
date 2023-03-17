@@ -1,5 +1,5 @@
 /*
- * A class to print text to the console in different styles.
+ * A class to print text to the console in different styles and colors.
  * <https://stackoverflow.com/questions/5762491/how-to-print-color-in-console-using-system-out-println>
  */
 public class ANSI {
