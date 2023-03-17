@@ -23,6 +23,8 @@ public class TrackInfo {
 	 * This method checks for this number-month bug error, and corrects it if present.
 	 */
 	private String checkForNumMonthBug(String song) {
+
+		// todo-- this might not be an issue after implementing my own API handler???
 	
 		String regex = ".*\\d.*"; 					// regex to check if song contains any numbers
         Pattern pattern = Pattern.compile(regex); 	// compiles the regex

@@ -15,6 +15,8 @@ public class Scrobble {
 	 */
 	public Scrobble(String input) {
 		Scanner sc = new Scanner(input);
+
+		// todo-- more than likely I will have to redo how I am parsing this info
 		
 		int day = Integer.parseInt(sc.next().substring(1, 3));
 		int month = convertMonthToInt(sc.next());

@@ -9,6 +9,8 @@ public class Apollo {
     public static Catalog database;
         
     public static void main(String[] args) throws InterruptedException {
+        // todo-- update the logic here to reflect API request/ api_handler.py
+        // https://stackoverflow.com/questions/27267391/running-a-py-file-from-java
         keyboard = new Scanner(System.in);
         String fileName = welcome();
         Scanner fileScanner = getFileScanner(fileName);
