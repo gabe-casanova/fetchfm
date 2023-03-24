@@ -1,4 +1,5 @@
 *.txt
-*.png
 scrobbled_data/
-usernames/
+user_info/
+__pycache__/
+Makefile

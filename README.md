@@ -1,27 +1,14 @@
-# apollo-program
+# track.fm
 
-Apollo♯ is a Java program that provides Last.fm users with extended functionality to analyze their music listening habits with data exported from their Last.fm account.
+track.fm is a dual program that allows users to both export and analyze their Last.fm music listening data!
 
-Steps to correctly download your Last.fm data:
-   1. log-in to your Last.fm account
-        - click on your profile picture
-        - click "Settings"
-        - click "Privacy"
-        - under the header "Recent listening", make sure that the feature "Hide recent listening information" is toggled off
-   2. visit the website <https://mainstream.ghan.nl/export.html>
-        - enter the following options:
-            - 'Last.fm username': enter in your Last.fm username
-            - 'select type': choose "Scrobbles"
-            - 'select format': choose "CSV"
-            - 'Previous timestamp': leave blank
-        - click "Go" and wait for your pages to be retrieved
-   3. open the CSV file in Microsoft Excel
-        - fully delete the following columns titled:
-            - "uts"
-            - "artist_mbid"
-            - "album_mbid"
-            - "track_mbid"
-        - save your updated CSV:
-            - 'File format': change this to "Tab delimited Text (.txt)"
-   4. save this text file to the directory where Apollo♯ will be run
-        
+In order to successfully run track.fm, make sure to follow these simple steps:
+    0. Ensure that the checkbox "Hide recent listening information" is unchecked at <https://www.last.fm/settings/privacy>
+    1. Create an API key by following the instructions provided by <https://www.last.fm/api/authentication>
+    2. Create two text files in the main project directory:
+        - "api_key.txt": copy and paste your API key here
+        - "user_agent.txt": type your Last.fm username here
+    3. Now, time to run the program!
+        - run api_handler.py first
+        - run Trackfm.java second
+    4. Enjoy!!!

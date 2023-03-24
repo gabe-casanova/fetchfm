@@ -2,16 +2,18 @@ import java.util.*;
 import java.time.*;
 import java.time.format.*;
 
-/* A collection of Scrobbles. */
+/*
+ * A class to represent a collection/catalog of Scrobbles
+ */
 public class Catalog implements Comparators {
 	
 	private ArrayList<Scrobble> stdCatalog;
 
 	private int totalNumScrobbles;
 	private int totalNumDistinctDays;
-	private int numMostListenedTo;		// acts as a union for S/A/A (i.e., most-listened-to-song-#-of-all-time)
-	private int numMostFreqOnDate;		// acts as a union for S/A/A (i.e., most-listened-to-song-#-on-this-date)
-	private int numLongestConsecutive;	// acts as a union for S/A/A (i.e., longest-conseq-listened-to-song-#)
+	private int numMostListenedTo;		// i.e., most-listened-to-song-#-of-all-time
+	private int numMostFreqOnDate;		// i.e., most-listened-to-song-#-on-this-date
+	private int numLongestConsecutive;	// i.e., longest-conseq-listened-to-song-#
 
 	private LinkedHashMap<LocalDateTime, Scrobble> fullChronoCatalog;
 	private LinkedHashMap<LocalDate, ArrayList<Scrobble>> dateChronoCatalog;
@@ -23,13 +25,11 @@ public class Catalog implements Comparators {
 	 * Create a new Catalog of Scrobble objects.
 	 */
 	public Catalog(Scanner sc) {
-		sc.nextLine();	// Disregards header of the file
-
 		stdCatalog = new ArrayList<Scrobble>();
 		while (sc.hasNextLine()) {
 			stdCatalog.add(new Scrobble(sc.nextLine()));
 		}
-		totalNumScrobbles = stdCatalog.size();
+		totalNumScrobbles = stdCatalog.size();  // todo-- this can also be obtained from user-info txt file?
 
 		// generate various catalogs needed for future use
 		makeFullChronoCatalog();
@@ -39,23 +39,23 @@ public class Catalog implements Comparators {
 		makeAlbumAlphaCatalog();
 	}
 
-	/* Return the number of times user has listened to a specific song overall. */
+	// Return the number of times the user has listened to a specific song overall
 	public int getNumTimesListenedToSong(String song) {
 		return getNumTimesListenedTo(song, alphaSongCatalog);
 	}
 
-	/* Return the number of times user has listened to a specific artist overall. */
+	// Return the number of times the user has listened to a specific artist overall
 	public int getNumTimesListenedToArtist(String artist) {
 		return getNumTimesListenedTo(artist, alphaArtistCatalog);
 	}
 
-	/* Return the number of times user has listened to a specific album overall. */
+	// Return the number of times the user has listened to a specific album overall
 	public int getNumTimesListenedToAlbum(String album) {
 		return getNumTimesListenedTo(album, alphaAlbumCatalog);
 	}
 
 	/*
-	 * Helper method used to reduce redundancy.
+	 * Helper method used to reduce redundancy
 	 */
 	private int getNumTimesListenedTo(String input, LinkedHashMap<String, ArrayList<Scrobble>> cat) {
 		/*
@@ -70,8 +70,8 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Prints our message that the user provided item was not found within the user's catalog.
-	 * This message is meant to serve as a reminder for the user to check for typos and capitalization errors.
+	 * Prints message that the user provided item was not found within the user's catalog
+	 * This message is meant to serve as a reminder for the user to check for typos and capitalization errors
 	 */
 	private int itemNotPresent(String item) {
 		System.out.println(ANSI.RESET);
@@ -80,7 +80,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Returns a list of song(s) which the user listened to the most for a given date.
+	 * Returns a list of song(s) which the user listened to the most for a given date
 	 */
 	public ArrayList<String> findMostFreqSongAtDate(int month, int day, int year) throws InterruptedException {
 		HashMap<String, int[]> map = new HashMap<>(); // intermediate storage container
@@ -97,7 +97,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Returns a list of artist(s) which the user listened to the most for a given date.
+	 * Returns a list of artist(s) which the user listened to the most for a given date
 	 */
 	public ArrayList<String> findMostFreqArtistAtDate(int month, int day, int year) throws InterruptedException {
 		HashMap<String, int[]> map = new HashMap<>(); // intermediate storage container
@@ -114,7 +114,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Returns a list of album(s) which the user listened to the most for a given date.
+	 * Returns a list of album(s) which the user listened to the most for a given date
 	 */
 	public ArrayList<String> findMostFreqAlbumAtDate(int month, int day, int year) throws InterruptedException {
 		HashMap<String, int[]> map = new HashMap<>(); // intermediate storage container
@@ -131,7 +131,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Helper method used to identify and return the highest frequency item(s) to the user.
+	 * Helper method used to identify and return the highest frequency item(s) to the user
 	 */
 	private ArrayList<String> putIntoListMostFreq(HashMap<String, int[]> map) {
 		ArrayList<String> result = new ArrayList<>();
@@ -156,7 +156,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Returns a list of all Scrobbles listed for a specific date (M/D/Y).
+	 * Returns a list of all Scrobbles listed for a specific date (M/D/Y)
 	 * Pre-condition: date must be within range of valid Scrobble dates
 	 */
 	public ArrayList<Scrobble> getScrobblesAtDate(int month, int day, int year) throws InterruptedException {
@@ -182,7 +182,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Helper method to verify that the user inputted data is in fact a valid year.
+	 * Helper method to verify that the user inputted data is in fact a valid year
 	 */
 	private boolean isValidDate(int month, int day, int year) {
 		if (month < 1 || day < 1 || year < 0 || month > 12 || day > 31) {

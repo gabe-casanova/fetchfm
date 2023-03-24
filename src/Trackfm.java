@@ -2,42 +2,52 @@ import java.io.*;
 import java.time.*;
 import java.util.*;
 
-/* A program to analyze music listening trends and patterns. */
-public class Apollo {
+/*
+ * A class that contains the main UI for the track.fm program
+ */
+public class Trackfm {
 
     public static Scanner keyboard;
     public static Catalog database;
-        
-    public static void main(String[] args) throws InterruptedException {
-        // todo-- update the logic here to reflect API request/ api_handler.py
-        // https://stackoverflow.com/questions/27267391/running-a-py-file-from-java
+    public static String username;
+    
+    public static void main(String[] args) throws InterruptedException, FileNotFoundException {
         keyboard = new Scanner(System.in);
-        String fileName = welcome();
-        Scanner fileScanner = getFileScanner(fileName);
-        database = new Catalog(fileScanner);
-        fileScanner.close();
+        welcome_msg();
+        findUsername();
+        readScrobbledDataFile();
         runOptions();
     }
 
     /*
      * Prints a welcome message to the console.
-     * Returns the name of the text file to analyze for the user.
      */
-    private static String welcome() {
+    private static void welcome_msg() {
         System.out.println();
-        System.out.println("Welcome to " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + ", a tool to analyze your Last.fm music listening habits!");
-        System.out.println();
-        return askForFileName();
+        System.out.println("Welcome to " + ANSI.BRIGHT_CYAN_BOLD + "track.fm" + ANSI.RESET + " :)");
     }
 
     /*
-     * Helper method that asks the user for the name of the text file they wish to analyze.
+     * Reads in the content of the user's scrobbled data txt file
      */
-    private static String askForFileName() {
-        System.out.print("What text file would you like to analyze? " + ANSI.BRIGHT_CYAN);
-        String fileName = keyboard.nextLine();
-        System.out.print(ANSI.RESET);
-        return fileName;
+    private static void readScrobbledDataFile() throws FileNotFoundException {
+        File scrobbledDataFile = new File("scrobbled_data/" + username + ".txt");
+        Scanner scrobbledDataScnr = new Scanner(scrobbledDataFile);
+        database = new Catalog(scrobbledDataScnr);
+        scrobbledDataScnr.close();
+    }
+
+    /*
+     * Searches for file current_user.txt and reads in the username within
+     */
+    private static void findUsername() throws FileNotFoundException {
+        // todo-- implement error handling?
+        File currUserFile = new File("current_user.txt");
+        Scanner currUserScnr = new Scanner(currUserFile);
+        if (currUserScnr.hasNext()) {
+            username = currUserScnr.next();
+        }
+        currUserScnr.close();
     }
 
     /*
@@ -65,7 +75,7 @@ public class Apollo {
         } while (myChoice != MenuChoices.QUIT);
         keyboard.close();
         System.out.println();
-        System.out.println("Thanks for using " + ANSI.BRIGHT_CYAN_BOLD + "Apollo♯" + ANSI.RESET + ", we hope to see you back soon!");
+        System.out.println("Thanks for using " + ANSI.BRIGHT_CYAN_BOLD + "track.fm" + ANSI.RESET + "!");
         System.out.println();
     }
 
@@ -478,30 +488,8 @@ public class Apollo {
         return sc.nextInt();
     }
 
-    /* 
-     * Create a Scanner and return connected to a File with the given name.
-     */
-    private static Scanner getFileScanner(String fileName) {
-        Scanner sc = null;
-        try {
-            sc = new Scanner(new File(fileName));
-        } catch (FileNotFoundException e) {
-            System.out.println();
-            String currentDir = System.getProperty("user.dir");
-            System.out.println(" * Please try again! We couldn't find the file " + ANSI.BRIGHT_CYAN + fileName + ANSI.RESET 
-                + " in the current folder: " + ANSI.BRIGHT_CYAN + currentDir + ANSI.RESET);
-            System.out.println();
-            sc = null;
-        }
-        if (sc == null) {
-            fileName = askForFileName();
-            sc = getFileScanner(fileName);
-        }
-        return sc;
-    }
-
     /*
-     * An enum type to represent the menu choices for the Apollo program.
+     * An enum type to represent the menu choices for the Trackfm program.
      */
     private static enum MenuChoices {
         GET_SCROBBLES_FROM_DATE, GET_NUM_TIMES_LISTENED_TO, MOST_LISTENED_FROM_DATE, MOST_LISTENED_OF_ALL_TIME, LONGEST_CONSECUTIVELY, 
