@@ -3,11 +3,18 @@ from scrobble import Scrobble
 from collections import OrderedDict
 from ansi import ANSI
 from datetime import datetime, date, time
+from typing import Callable
 
 
 class Catalog(Comparators):
     '''
     A class to represent a catalog (collection) of Scrobbles
+    '''
+
+    '''
+    TODO
+     - make a list of all instance variables
+     - make a list of all public method calls
     '''
 
     def __init__(self, sc):
@@ -70,7 +77,6 @@ class Catalog(Comparators):
         for scrob in scrobs:
             song = scrob.get_track().get_song()
             if song not in freqs:
-                # TODO figure out why it's a list vs just an int (i.e. new int[1])
                 freqs[song] = [0]
             freqs.get(song)[0] += 1
         return self.__list_of_most_freq(freqs)
@@ -184,7 +190,7 @@ class Catalog(Comparators):
     def __print_oob_date_error_msg(self, requested_date):
         '''
         Prints an error message that the requested date was not within the 
-        user's catalog range
+        user's catalog range (out of error bounds error)
         '''
         TEMPLATE = '%-m/%-d/%Y'
         # define the range of available scrobbles [start, end]
@@ -204,9 +210,120 @@ class Catalog(Comparators):
         ansi_end_date = f'{ANSI.BRIGHT_CYAN}{formatted_end}{ANSI.RESET}'
         print(f'{ansi_start_date} - {ansi_end_date}.')
 
+    ''' TODO check that these 3 still work!! '''
+    def find_most_consecutive_song(self):
+        return self.__find_most_consecutive(lambda track: track.get_song())
 
+    def find_most_consecutive_artist(self):
+        return self.__find_most_consecutive(lambda track: track.get_artist())
 
+    def find_most_consecutive_album(self):
+        return self.__find_most_consecutive(lambda track: track.get_album())
 
+    def __find_most_consecutive(self, get_field:Callable):
+        '''
+        Returns a list of item names (song, artist, or album names) which the
+        user has listened to the most consecutive number of times (i.e., most
+        times listened to in a row).
+        '''
+        result = []
+        # variables used to keep track of current longest consecutive item
+        longest_length = 0
+        consec_item = ''
+        # variables needed when replacing the above two variables (i.e., when
+        # we find a NEW more consecutive item)
+        second_length = 0
+        second_item = ''
+        # iterate through the entire standard catalog
+        for i in range(len(self.__stnd_catalog)):
+            curr = get_field(self.__stnd_catalog[i].get_track())
+            if i == 0:
+                # base case, only happens to initialize variables
+                longest_length = 1
+                consec_item = curr
+                result.append(consec_item)
+            elif self.__is_consecutive(i, longest_length, consec_item, 
+                                       get_field):
+                # we now know that the curr item IS consecutive
+                longest_length += 1
+                if longest_length > second_length:
+                    # we've found a completely NEW more consecutive streak
+                    second_length = 0  # reset
+                    second_item = ''  # reset
+                    '''
+                    TODO FEATURE: what if before we discard the original array, we save it somewhere?
+					 * 	 this way we will be able to see a list of most consecutively listened to songs
+					 * 		- i.e. most consecutive (cellophane 56), second most consecutive, (don't blame me 49), ...
+                    '''
+                    result = [consec_item]  # update the result list
+            elif self.__is_consecutive(i, second_length, second_item, 
+                                       get_field):
+                '''
+                If we get here we now know curr item is NOT part of the longest
+                consecutive streak. But, we do know that the curr item IS 
+                contributing toward the second_item's consecutive streak
+                '''
+                second_length += 1
+                if second_length == longest_length:
+                    # we only get here when second_song now has the same
+                    # number of consecutive streaks as most consecutive_song
+                    consec_item = second_item
+                    result.append(second_item)
+            else:
+                # if we get here, we need to initialize our 'second' variables
+                # with their new values
+                second_length = 1
+                second_item = curr
+        self.__num_most_consecutive = longest_length  # store instance variable
+        return result
+                
+    def __is_consecutive(self, i, length, field_val, get_field:Callable):
+        if field_val != get_field(self.__stnd_catalog[i].get_track()):
+            # the current item from stnd_catalog[i] breaks the chain of most
+            # consecutively listened to song, artist, or album (field_val)
+            return False
+        # iterate over the length for the most consecutive item so far
+        for offset in range(1, length):
+            item1 = get_field(self.__stnd_catalog[i].get_track())
+            item2 = get_field(self.__stnd_catalog[i - offset].get_track())
+            if item1 != item2:
+                return False
+        return True
+
+    ''' TODO check these 3 still work!! '''
+    def most_listened_to_song(self):
+        ''' Returns a list of most listened to song(s) name '''
+        song = lambda track: track.get_song()
+        catalog = self.__alpha_song_catalog
+        return self.__most_listened_to(song, catalog)
+    
+    def most_listened_to_artist(self):
+        ''' Returns a list of most listened to artist(s) name '''
+        artist = lambda track: track.get_artist()
+        catalog = self.__alpha_artist_catalog
+        return self.__most_listened_to(artist, catalog)
+    
+    def most_listened_to_album(self):
+        ''' Returns a list of most listened to album(s) name '''
+        album = lambda track: track.get_album()
+        catalog = self.__alpha_album_catalog
+        return self.__most_listened_to(album, catalog)
+    
+    def __most_listened_to(self, get_field:Callable, alpha_catalog):
+        result = []
+        max_so_far = 0
+        for _, scrobs in alpha_catalog.items():
+            num_listens = len(scrobs)
+            if num_listens > max_so_far:
+                # we found a new max number of listens
+                max_so_far = num_listens
+                result = [get_field(scrobs[0].get_track())]
+            elif num_listens == max_so_far:
+                # at least 2 item fields (song, artist, or album) have the same
+                # max number of listens, we want to record both in our result
+                result.append(get_field(scrobs[0].get_track()))
+        self.__num_most_listened_to = max_so_far  # store instance variable
+        return result
 
 
 

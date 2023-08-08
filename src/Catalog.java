@@ -249,18 +249,6 @@ public class Catalog implements Comparators {
 		System.out.println(ANSI.BRIGHT_CYAN + startRange.format(myFormat) + ANSI.RESET + " - " + ANSI.BRIGHT_CYAN + endRange.format(myFormat) + ANSI.RESET + ".");
 	}
 
-
-
-
-
-
-
-	
-
-
-
-
-
 	/*
 	 * Returns a list of song names, consisting of those which have the longest amount of consecutive listens.
 	 */
@@ -276,7 +264,7 @@ public class Catalog implements Comparators {
 		int secondLength = 0;
 		String secondSong = "";
 
-		// Iterate through the entire standard catalog (versus chronological order, but that's okay)
+		// Iterate through the entire standard catalog (reverse chronological order, but that's okay)
 		for (int i = 0; i < stdCatalog.size(); i++) {
 			String curr = stdCatalog.get(i).getTrack().getSong();
 			if (i == 0) {
@@ -558,6 +546,15 @@ public class Catalog implements Comparators {
 		return result;
 	}
 
+
+
+
+
+
+
+
+
+
 	/* Generate the average number of Scrobbles listened to per day. */
 	public int getAvgNumScrobblesPerDay() {
 		return Math.round((float) totalNumScrobbles / totalNumDistinctDays); // rounds to nearest whole number
@@ -680,6 +677,14 @@ public class Catalog implements Comparators {
 		}
 	}	
 
+
+
+
+
+
+
+
+	
 	/* Print the Scrobbles listened to on a specific date (M/D/Y) */
 	public void printScrobblesAtDate(int month, int day, int year) throws InterruptedException {
 		ArrayList<Scrobble> arr = getScrobblesAtDate(month, day, year);
