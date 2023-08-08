@@ -182,7 +182,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Helper method to verify that the user inputted data is in fact a valid year
+	 * Helper method to verify that the user inputted data is in fact a valid date
 	 */
 	private boolean isValidDate(int month, int day, int year) {
 		if (month < 1 || day < 1 || year < 0 || month > 12 || day > 31) {
@@ -213,7 +213,7 @@ public class Catalog implements Comparators {
 	}
 
 	/*
-	 * Helper method to check if the given yeaer is a leap year
+	 * Helper method to check if the given year is a leap year
 	 */
 	private boolean isLeapYear(int year) {
 		if (year % 4 == 0) {
@@ -230,7 +230,7 @@ public class Catalog implements Comparators {
 				return true;
 			}
 		} else {
-			// the year is not divisible by 5
+			// the year is not divisible by 4
 			return false;
 		}
 	}
@@ -248,6 +248,18 @@ public class Catalog implements Comparators {
 		System.out.print(" * Sorry, but " + ANSI.BRIGHT_CYAN_BOLD + requestedDate.format(myFormat) + ANSI.RESET + " is not within the range of your scrobbled data: ");
 		System.out.println(ANSI.BRIGHT_CYAN + startRange.format(myFormat) + ANSI.RESET + " - " + ANSI.BRIGHT_CYAN + endRange.format(myFormat) + ANSI.RESET + ".");
 	}
+
+
+
+
+
+
+
+	
+
+
+
+
 
 	/*
 	 * Returns a list of song names, consisting of those which have the longest amount of consecutive listens.
