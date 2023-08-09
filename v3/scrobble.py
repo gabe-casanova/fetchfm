@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, date, time
 from track_info import TrackInfo
 
 
 class Scrobble:
     '''
-    A class to represent a Scrobble object (contains track and term info)
+    A class to represent a Scrobble object (contains track and datetime info)
     '''
 
     def __init__(self, input):
@@ -14,35 +14,34 @@ class Scrobble:
         album, song) for a given Scrobble
         '''
         data = input.split()
-
+        
         # extract datetime information
         day = int(data[0])
         month = self.__convert_month_to_int(data[1])
-        year = int(data[2][:4])  # ignore trailing comma
+        year = int(data[2][:4])  # ignores trailing comma
         hour = int(data[3][:2])
         minute = int(data[3][3:5])
     
         # extract track information
         data = input.split('\t')
+        self.is_valid = True  # start by assuming all track info is present
         if len(data) == 4:
             # default case
             artist = data[1]
             album = data[2]
-            song = data[3]
-        elif len(data) == 3:
-            # edge case 1: no album info
-            artist = data[1]
-            song = data[2]
-            album = ''
+            song = data[3][:-1]  # removes the \n from song
         else:
-            # we should never get here
-            print(f' ** Error: len(data) = {len(data)}')
-
+            # edge-case: input is missing necessary track information
+            self.is_valid = False
+            
         # store instance variables
-        self.__term = datetime(year, month, day, hour, minute)
-        self.__track = TrackInfo(artist, album, song)
+        if self.is_valid:
+            self.__term = datetime(year, month, day, hour, minute)
+            self.__date = date(year, month, day)
+            self.__time = time(hour, minute)
+            self.__track = TrackInfo(artist, album, song)
 
-    def __convert_month_to_int(self, tgt) -> int:
+    def __convert_month_to_int(self, tgt):
         '''
         Convert a month's string representation to its int equivalent
         '''
@@ -56,13 +55,13 @@ class Scrobble:
     def get_term(self) -> datetime:
         return self.__term
     
-    def get_date(self) -> datetime.date:
-        return self.__term.date
+    def get_date(self) -> date:
+        return self.__date
     
-    def get_time(self) -> datetime.time:
-        return self.__term.time
+    def get_time(self) -> time:
+        return self.__time
     
-    def __str__(self) -> str:
-        template = '%-d %b %Y, %I:%M %p'
-        formatted_term = self.__term.strftime(template)
+    def __str__(self):
+        TEMPLATE = '%-d %b %Y, %I:%M %p'
+        formatted_term = self.__term.strftime(TEMPLATE)
         return f'{formatted_term}\t{self.__track}'

@@ -17,7 +17,7 @@ class TrackInfo:
     def get_song(self) -> str:
         return self.__song
     
-    def __str__(self) -> str:
+    def __str__(self):
         FORMAT = '{}    {}    {}'
         return FORMAT.format(self.__artist, self.__album, self.__song)
     
