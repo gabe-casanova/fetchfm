@@ -1,10 +1,61 @@
-from comparators import Comparators
-from scrobble import Scrobble
-from collections import OrderedDict
 from ansi import ANSI
-from datetime import datetime, date, time
+from scrobble import Scrobble
+from comparators import Comparators
+
+from datetime import date, time
+from collections import OrderedDict
 from typing import Callable
+
 import time
+
+
+'''
+------------------------------------------------------------------------------
+Instance Variables:
+    Catalogs:
+        ->  __stnd_catalog              list(Scrobble)
+        ->  __daily_catalog             OrderedDict(datetime, list(Scrobble))
+        ->  __alpha_song_catalog        OrderedDict(str, list(Scrobble))
+        ->  __alpha_artist_catalog      "
+        ->  __alpha_album_catalog       "
+    Numerics:
+        ->  __total_num_scrobbles       int
+        ->  __total_num_distinct_days   int
+------------------------------------------------------------------------------
+'''
+
+'''
+------------------------------------------------------------------------------
+Public Methods:
+    -  get_num_listens_for_song(song) -> int
+    -  get_num_listens_for_artist(artist) -> int
+    -  get_num_listens_for_album(album) -> int
+    //
+    -  most_freq_song_on_date(month, day, year) -> tuple[list, int]
+    -  most_freq_artist_on_date(month, day, year) -> tuple[list, int]
+    -  most_freq_album_on_date(month, day, year) -> tuple[list, int]
+    //
+    -  get_scrobbles_on_date(month, day, year) -> []
+    -  print_scrobbles_on_date(month, day, year) -> void
+    //
+    - most_consecutive_song() -> tuple[list, int]
+    - most_consecutive_artist() -> tuple[list, int]
+    - most_consecutive_album() -> tuple[list, int]
+    //
+    - most_listened_to_song() -> tuple[list, int]
+    - most_listened_to_artist() -> tuple[list, int]
+    - most_listened_to_album() -> tuple[list, int]
+    //
+    -  get_avg_daily_scrobbles() -> int
+    -  get_total_num_scrobbles() -> int
+    -  get_total_num_distinct_days() -> int
+    //
+    -  print_chronological_catalog() -> void
+    -  print_song_catalog() -> void
+    -  print_artist_catalog() -> void
+    -  print_album_catalog() -> void
+------------------------------------------------------------------------------
+'''
 
 
 class Catalog(Comparators):
@@ -12,15 +63,9 @@ class Catalog(Comparators):
     A class to represent a catalog (collection) of Scrobbles
     '''
 
-    '''
-    TODO
-     - make a list of all instance variables
-     - make a list of all public method calls
-    '''
-
     def __init__(self, sc):
         '''
-        Create a new catalog of Scrobble obkects
+        Create a new catalog of Scrobble objects
         '''
         self.__stnd_catalog = []
         for line in sc:
@@ -28,109 +73,83 @@ class Catalog(Comparators):
         self.__total_num_scrobbles = len(self.__stnd_catalog)
 
         # preemptively generate catalogs needed for future use
-        self.__make_full_chrono_catalog()
-        self.__make_date_chrono_catalog()
-        self.__make_song_alpha_catalog()
-        self.__make_artist_alpha_catalog()
-        self.__make_album_alpha_catalog()
+        self.__make_daily_catalog()
+        self.__make_alphabetized_catalogs()
 
-    def get_num_times_listened_to_song(self, song):
+    ''''''
+
+    def get_num_listens_for_song(self, song):
         return self.__num_listens(song, self.__alpha_song_catalog)
     
-    def get_num_times_listened_to_artist(self, artist):
+    def get_num_listens_for_artist(self, artist):
         return self.__num_listens(artist, self.__alpha_artist_catalog)
     
-    def get_num_times_listened_to_album(self, album):
+    def get_num_listens_for_album(self, album):
         return self.__num_listens(album, self.__alpha_album_catalog)
 
-    def __num_listens(self, tgt:str, cat:OrderedDict):
+    def __num_listens(self, item, catalog):
         '''
-        Helper method to reduce redundancy
         TODO FEATURE: equalsIgnoreCase()
 		 *   - make it so that a user can type in "Don't Blame Me" or "don't blame me" and both would return the correct int answer
 		 *   - make it so that Daylight by Taylor Swift and Daylight by Harry Styles don't both get added to the int answer
 		 *        - maybe check that the artist name for every Scrobble in arr is all the same, if multiple then alert the user
 		 *   - if I type in "Midnigh", ask the user: "Did you mean 'Midnights' or 'Midnights (3am Edition)'" aka autofill?
         '''
-        streams = cat.get(tgt)
-        return len(streams) if streams is not None \
-            else self.__item_not_present(tgt)
-
-    def __item_not_present(item):
-        '''
-        Prints a message informing the user that their input was not found
-        within the user's catalog. This message is meant as a reminder for the
-        user to check for typos and capitalization errors.
-        '''
-        print(ANSI.RESET)
-        print(f' * {ANSI.BRIGHT_CYAN_BOLD}{item}{ANSI.RESET} was not found \
-              within your Last.fm data')
+        scrobs = catalog.get(item)
+        if scrobs:
+            return len(scrobs)
+        else:
+            print(ANSI.RESET)
+            ansi_item = f'{ANSI.BRIGHT_CYAN_BOLD}{item}{ANSI.RESET}'
+            print(f' * {ansi_item} was not found within your Last.fm data')
         return 0
     
-    def find_most_freq_song_on_date(self, month, day, year) -> list:
-        '''
-        Returns a list of song(s) which were the user's most listened to on
-        a specific date
-        '''
-        freqs = {}  # intermediate storage container
-        scrobs = self.get_scrobbles_on_date(month, day, year)
-        # generate song frequencies
-        for scrob in scrobs:
-            song = scrob.get_track().get_song()
-            if song not in freqs:
-                freqs[song] = [0]
-            freqs.get(song)[0] += 1
-        return self.__list_of_most_freq(freqs)
-    
-    def find_most_freq_artist_on_date(self, month, day, year) -> list:
-        '''
-        Returns a list of artist(s) which were the user's most listened to on
-        a specific date
-        '''
-        freqs = {}  # intermediate storage container
-        scrobs = self.get_scrobbles_on_date(month, day, year)
-        # generate artist frequencies
-        for scrob in scrobs:
-            artist = scrob.get_track().get_artist()
-            if artist not in freqs:
-                freqs[artist] = [0]
-            freqs.get(artist)[0] += 1
-        return self.__list_of_most_freq(freqs)
-    
-    def find_most_freq_album_on_date(self, month, day, year) -> list:
-        '''
-        Returns a list of album(s) which were the user's most listened to on
-        a specific date
-        '''
-        freqs = {}  # intermediate storage container
-        scrobs = self.get_scrobbles_on_date(month, day, year)
-        # generate album frequencies
-        for scrob in scrobs:
-            album = scrob.get_track().get_album()
-            if album not in freqs:
-                freqs[album] = [0]
-            freqs.get(album)[0] += 1
-        return self.__list_of_most_freq(freqs)
+    ''''''
 
-    def __list_of_most_freq(self, freqs:map) -> list:
+    def most_freq_song_on_date(self, month, day, year):
         '''
-        Returns the most frequently occurring item(s) as a list
+        Returns a list of song(s) which were the user's most listened to for
+        a given date and also the number of listens for the most freq song(s)
         '''
-        result = []
-        max_so_far = 0
-        # iterate over freqs to find the most recurring item(s)
-        for item, freq in freqs.items():
-            curr = freq[0]
-            if curr > max_so_far:
-                max_so_far = curr
-                result = [item]  # reset result with new max frequency item
-            elif curr == max_so_far:
-                result.append(item)  # add item to list of most frequent items
-        # store the max freq into an instance variable
-        self.__num_most_freq_on_date = freqs[result[0]][0] if result else 0
-        return result
+        get_field = lambda track: track.get_song()
+        return self.__most_freq_on_date(month, day, year, get_field)
+    
+    def most_freq_artist_on_date(self, month, day, year):
+        '''
+        Returns a list of artist(s) which were the user's most listened to for
+        a given date and also the number of listens for the most freq artist(s)
+        '''
+        get_field = lambda track: track.get_artist()
+        return self.__most_freq_on_date(month, day, year, get_field)
+    
+    def most_freq_album_on_date(self, month, day, year):
+        '''
+        Returns a list of album(s) which were the user's most listened to for
+        a given date and also the number of listens for the most freq album(s)
+        '''
+        get_field = lambda track: track.get_album()
+        return self.__most_freq_on_date(month, day, year, get_field)
 
-    def get_scrobbles_on_date(self, month, day, year):
+    def __most_freq_on_date(self, m, d, y, get_field) -> tuple[list, int]:
+        freqs = {}
+        scrobs = self.get_scrobbles_on_date(m, d, y)
+        # generate item frequencies
+        for scrob in scrobs:
+            item = get_field(scrob.get_track())
+            if item not in freqs:
+                freqs[item] = [0]
+            freqs.get(item)[0] += 1
+        ''' time to figure out max frequency '''
+        if not freqs:
+            return [], 0
+        # if we get here, we know there won't be a ValueError for empty dict
+        max_freq = max(freqs.values())
+        result = [item for item, freq in freqs.items() if freq == max_freq]
+        return result, max_freq
+    
+    ''''''
+
+    def get_scrobbles_on_date(self, month, day, year) -> list:
         '''
         Returns a list of all Scrobbles listened to on a given date (M/D/Y)
         '''
@@ -145,7 +164,7 @@ class Catalog(Comparators):
             self.__print_oob_date_error_msg(requested_date)
             return []
         # if we get here we have a date that falls within user's bounds
-        return self.__date_chrono_catalog.get(requested_date)
+        return self.__daily_catalog.get(requested_date)
 
     def __is_valid_date(self, month, day, year):
         if month < 1 or day < 1 or year < 0 or month > 12 or day > 31:
@@ -211,21 +230,23 @@ class Catalog(Comparators):
         ansi_end_date = f'{ANSI.BRIGHT_CYAN}{formatted_end}{ANSI.RESET}'
         print(f'{ansi_start_date} - {ansi_end_date}.')
 
-    ''' TODO check that these 3 still work!! '''
-    def find_most_consecutive_song(self):
+    ''''''
+
+    # TODO check that these 3 still work!!
+    def most_consecutive_song(self):
         return self.__find_most_consecutive(lambda track: track.get_song())
 
-    def find_most_consecutive_artist(self):
+    def most_consecutive_artist(self):
         return self.__find_most_consecutive(lambda track: track.get_artist())
 
-    def find_most_consecutive_album(self):
+    def most_consecutive_album(self):
         return self.__find_most_consecutive(lambda track: track.get_album())
 
-    def __find_most_consecutive(self, get_field:Callable):
+    def __find_most_consecutive(self, get_field:Callable) -> tuple[list, int]:
         '''
-        Returns a list of item names (song, artist, or album names) which the
-        user has listened to the most consecutive number of times (i.e., most
-        times listened to in a row).
+        Returns a list of item names (song, artist, or album names) which 
+        the user has listened to the most times in a row. Also returns an int
+        signif the number of plays for longest consecutively listened to S/A/A
         '''
         result = []
         # variables used to keep track of current longest consecutive item
@@ -260,8 +281,8 @@ class Catalog(Comparators):
             elif self.__is_consecutive(i, second_length, second_item, 
                                        get_field):
                 '''
-                If we get here we now know curr item is NOT part of the longest
-                consecutive streak. But, we do know that the curr item IS 
+                If we get here we know curr item is NOT part of the longest
+                consecutive streak. But, we do know that the curr item is 
                 contributing toward the second_item's consecutive streak
                 '''
                 second_length += 1
@@ -275,13 +296,10 @@ class Catalog(Comparators):
                 # with their new values
                 second_length = 1
                 second_item = curr
-        self.__num_most_consecutive = longest_length  # store instance variable
-        return result
+        return result, longest_length
                 
-    def __is_consecutive(self, i, length, field_val, get_field:Callable):
-        if field_val != get_field(self.__stnd_catalog[i].get_track()):
-            # the current item from stnd_catalog[i] breaks the chain of most
-            # consecutively listened to song, artist, or album (field_val)
+    def __is_consecutive(self, i, length, most_consec, get_field:Callable):
+        if most_consec != get_field(self.__stnd_catalog[i].get_track()):
             return False
         # iterate over the length for the most consecutive item so far
         for offset in range(1, length):
@@ -291,21 +309,32 @@ class Catalog(Comparators):
                 return False
         return True
 
-    ''' TODO check these 3 still work!! '''
+    ''''''
+
+    # TODO check that these 3 still work!!
     def most_listened_to_song(self):
-        ''' Returns a list of most listened to song(s) name '''
+        '''
+        Returns a list of song name(s) which were the user's most listened 
+        to and also the number of listens for the most listened to song(s)
+        '''
         song = lambda track: track.get_song()
         catalog = self.__alpha_song_catalog
         return self.__most_listened_to(song, catalog)
     
     def most_listened_to_artist(self):
-        ''' Returns a list of most listened to artist(s) name '''
+        '''
+        Returns a list of artist name(s) which were the user's most listened 
+        to and also the number of listens for the most listened to artist(s)
+        '''
         artist = lambda track: track.get_artist()
         catalog = self.__alpha_artist_catalog
         return self.__most_listened_to(artist, catalog)
     
     def most_listened_to_album(self):
-        ''' Returns a list of most listened to album(s) name '''
+        '''
+        Returns a list of album name(s) which were the user's most listened 
+        to and also the number of listens for the most listened to album(s)
+        '''
         album = lambda track: track.get_album()
         catalog = self.__alpha_album_catalog
         return self.__most_listened_to(album, catalog)
@@ -320,11 +349,12 @@ class Catalog(Comparators):
                 max_so_far = num_listens
                 result = [get_field(scrobs[0].get_track())]
             elif num_listens == max_so_far:
-                # at least 2 item fields (song, artist, or album) have the same
+                # at least 2 items (song, artist, or album) have the same
                 # max number of listens, we want to record both in our result
                 result.append(get_field(scrobs[0].get_track()))
-        self.__num_most_listened_to = max_so_far  # store instance variable
-        return result
+        return result, max_so_far
+
+    ''''''
 
     def get_avg_daily_scrobbles(self):
         ''' Returns the user's average daily Scrobbles as a whole number '''
@@ -338,106 +368,8 @@ class Catalog(Comparators):
     def get_total_num_distinct_days(self):
         ''' Returns the total num of distinct days the user has Scrobbled '''
         return self.__total_num_distinct_days
-
-    def get_most_listened_to_of_all_time(self):
-        '''
-        Returns the number of listens recorded for the most listened to
-        song, artist, or album
-        '''
-        return self.__num_most_listened_to
-
-    def get_num_of_most_consecutive(self):
-        '''
-        Returns the number of listens recorded for the most consecutively
-        listened to song, artist, or album
-        '''
-        return self.__num_most_consecutive
     
-    def get_num_most_freq_on_date(self):
-        '''
-        Returns the number of listens recorded for the most Scrobbled song,
-        artist, or album
-        '''
-        return self.__num_most_freq_on_date
-
-    def __make_full_chrono_catalog(self):
-        '''
-        Generates a 1:1 chronologically-sorted catalog. The internal data
-        structure is an OrderedDict (maintains insertion order). The key is
-        is a datetime object (the term) and the value is a Scrobble. Oldest
-        Scrobbles come at the beginning of the dict, newer come near the end.
-        '''
-        self.__full_chrono_catalog = OrderedDict()
-        for index in range(self.__total_num_scrobbles - 1, -1, -1):
-            scrob = self.__stnd_catalog[index]
-            self.__full_chrono_catalog[scrob.get_term()] = scrob
-        
-    def __make_date_chrono_catalog(self):
-        '''
-        Generates a many-to-one grouped chronologically-sorted catalog
-        '''
-        self.__date_chrono_catalog = OrderedDict()
-        num_distinct_days = 0
-        for index in range(self.__total_num_scrobbles - 1, -1, -1):
-            scrob = self.__stnd_catalog[index]
-            date = scrob.get_date()
-            if date not in self.__date_chrono_catalog:
-                num_distinct_days += 1
-                self.__date_chrono_catalog[date] = []
-            # TODO check if this append works
-            self.__date_chrono_catalog[date].append(scrob)
-        self.__total_num_distinct_days = num_distinct_days
-
-    def __make_song_alpha_catalog(self):
-        '''
-        Generates a new catalog alphabetically-sorted by song name
-        '''
-        temp_catalog = self.__stnd_catalog.copy()
-        temp_catalog.sort(key=self.__song_key)
-        self.__alpha_song_catalog = OrderedDict()
-        for index in range(len(temp_catalog)):
-            scrob = temp_catalog[index]
-            song = scrob.get_track().get_song()
-            if song not in self.__alpha_song_catalog:
-                self.__alpha_song_catalog[song] = []
-            self.__alpha_song_catalog[song].append(scrob)
-
-    def __song_key(scrobble:Scrobble):
-        return scrobble.get_track().get_song()
-    
-    def __make_artist_alpha_catalog(self):
-        '''
-        Generates a new catalog alphabetically-sorted by artist name
-        '''
-        temp_catalog = self.__stnd_catalog.copy()
-        temp_catalog.sort(key=self.__artist_key)
-        self.__alpha_artist_catalog = OrderedDict()
-        for index in range(len(temp_catalog)):
-            scrob = temp_catalog[index]
-            artist = scrob.get_track().get_artist()
-            if artist not in self.__alpha_artist_catalog:
-                self.__alpha_artist_catalog[artist] = []
-            self.__alpha_artist_catalog[artist].append(scrob)
-    
-    def __artist_key(scrobble:Scrobble):
-        return scrobble.get_track().get_artist()
-    
-    def __make_album_alpha_catalog(self):
-        '''
-        Generates a new catalog alphabetically-sorted by album name
-        '''
-        temp_catalog = self.__stnd_catalog.copy()
-        temp_catalog.sort(key=self.__album_key)
-        self.__alpha_album_catalog = OrderedDict()
-        for index in range(len(temp_catalog)):
-            scrob = temp_catalog[index]
-            album = scrob.get_track().get_album()
-            if album not in self.__alpha_album_catalog:
-                self.__alpha_album_catalog[album] = []
-            self.__alpha_album_catalog[album].append(scrob)
-
-    def __album_key(scrobble:Scrobble):
-        return scrobble.get_track().get_album()
+    ''''''
 
     def print_scrobbles_on_date(self, month, day, year):
         '''
@@ -451,11 +383,13 @@ class Catalog(Comparators):
         else:
             print('You did not listen to any music on that day!')
                 
-    def print_full_chronological_catalog(self):
+    def print_chronological_catalog(self):
         ''' Prints the full chronological catalog to the screen '''
         print()
-        for _, scrobs in self.__full_chrono_catalog.items():
-            print(scrobs)
+        for _, scrobs in self.__daily_catalog.items():
+            for scrob in scrobs:
+                # TODO check that printing is in fact chronological
+                print(scrob)
         print()
 
     def print_song_catalog(self):
@@ -482,14 +416,13 @@ class Catalog(Comparators):
         catalog = self.__alpha_album_catalog
         self.__print_catalog(most_listened_func, catalog, False)
 
+    # TODO check that this still works!!
     def __print_catalog(self, most_listened_func:Callable, alpha_catalog, 
                         is_artist_catalog_request:bool):
-        most_listened_func()  # sets value of self.__num_most_listened_to
         ''' Calculate the length of num_most_listened_to including commas '''
-        max_length = self.__num_most_listened_to
+        _, max_length = most_listened_func()
         max_length_with_commas = f'{max_length:,}'
         max_length = len(max_length_with_commas)
-        ''''''
         FORMATTING = f'%{max_length}s'  # right-justified formatting
         ''' Print the output to the screen '''
         print()
@@ -498,10 +431,76 @@ class Catalog(Comparators):
             formatted_num_listens = f'{FORMATTING % num_listens_with_commas}'
             print(f'{ANSI.BRIGHT_WHITE_BOLD}{formatted_num_listens}', end='')
             if is_artist_catalog_request:
-                # Behavior when printing artist-sorted catalog requests
+                # Behavior when printing artist-sorted catalog requests only
                 print(f'{ANSI.RESET} {key}')
             else:
                 key_portion = f'{ANSI.BRIGHT_CYAN}  {key}{ANSI.RESET}'
                 artist_name = f'{scrobs[0].get_track().get_artist()}'
                 print(f'{key_portion} [{artist_name}]')
         print()
+
+    ''''''
+        
+    def __make_daily_catalog(self):
+        '''
+        Generates a one-to-many daily catalog of Scrobbles (grouped by date).
+        The internal data structure is an OrderedDict (maintains insertion
+        order). The key is is a datetime object (the term) and the value is a
+        list of Scrobbles. Catalog is sorted in chronological order, meaning 
+        oldest Scrobbles come at the beginning of the catalog.
+        '''
+        self.__daily_catalog = OrderedDict()
+        num_distinct_days = 0
+        for index in range(self.__total_num_scrobbles - 1, -1, -1):
+            scrob = self.__stnd_catalog[index]
+            date = scrob.get_date()
+            if date not in self.__daily_catalog:
+                num_distinct_days += 1
+                self.__daily_catalog[date] = []
+            # TODO check if this append works
+            self.__daily_catalog[date].append(scrob)
+        self.__total_num_distinct_days = num_distinct_days
+
+    def __make_alphabetized_catalogs(self):
+        '''
+        Generates 3 new catalogs alphabetically-sorted by song name, artist
+        name, and album name.
+        '''
+        # Song
+        get_field = lambda scrob: scrob.get_track().get_song()
+        song_catalog = self.__make_alpha_catalog(self.__song_key, get_field)
+        # Artist
+        get_field = lambda scrob: scrob.get_track().get_artist()
+        artist_catalog = self.__make_alpha_catalog(self.__artist_key,
+                                                   get_field)
+        # Album
+        get_field = lambda scrob: scrob.get_track().get_album()
+        album_catalog = self.__make_alpha_catalog(self.__album_key, get_field)
+        ''' Assign to instance variables '''
+        self.__alpha_song_catalog = song_catalog
+        self.__alpha_artist_catalog = artist_catalog
+        self.__alpha_album_catalog = album_catalog
+
+    def __make_alpha_catalog(self, key_func, get_field):
+        '''
+        Returns a new catalog alphabetically-sorted by the specified key
+        '''
+        temp_catalog = self.__stnd_catalog.copy()
+        temp_catalog.sort(key=key_func)
+        alpha_catalog = OrderedDict()
+        for scrob in temp_catalog:
+            item = get_field(scrob)
+            if item not in alpha_catalog:
+                alpha_catalog[item] = []
+            alpha_catalog[item].append(scrob)
+        return alpha_catalog
+ 
+    def __song_key(scrobble:Scrobble):
+        return scrobble.get_track().get_song()
+
+    def __artist_key(scrobble:Scrobble):
+        return scrobble.get_track().get_artist()
+    
+    def __album_key(scrobble:Scrobble):
+        return scrobble.get_track().get_album()
+    

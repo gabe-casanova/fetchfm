@@ -545,16 +545,7 @@ public class Catalog implements Comparators {
 		numMostListenedTo = maxSoFar;
 		return result;
 	}
-
-
-
-
-
-
-
-
-
-
+	
 	/* Generate the average number of Scrobbles listened to per day. */
 	public int getAvgNumScrobblesPerDay() {
 		return Math.round((float) totalNumScrobbles / totalNumDistinctDays); // rounds to nearest whole number
@@ -677,14 +668,6 @@ public class Catalog implements Comparators {
 		}
 	}	
 
-
-
-
-
-
-
-
-	
 	/* Print the Scrobbles listened to on a specific date (M/D/Y) */
 	public void printScrobblesAtDate(int month, int day, int year) throws InterruptedException {
 		ArrayList<Scrobble> arr = getScrobblesAtDate(month, day, year);
