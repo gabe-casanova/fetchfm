@@ -4,6 +4,7 @@ from collections import OrderedDict
 from ansi import ANSI
 from datetime import datetime, date, time
 from typing import Callable
+import time
 
 
 class Catalog(Comparators):
@@ -325,16 +326,39 @@ class Catalog(Comparators):
         self.__num_most_listened_to = max_so_far  # store instance variable
         return result
 
+    def get_avg_daily_scrobbles(self):
+        ''' Returns the user's average daily Scrobbles as a whole number '''
+        average = self.__total_num_scrobbles / self.__total_num_distinct_days
+        return round(average)
 
+    def get_total_num_scrobbles(self):
+        ''' Returns the user's total number of Scrobbles listened to '''
+        return self.__total_num_scrobbles
 
+    def get_total_num_distinct_days(self):
+        ''' Returns the total num of distinct days the user has Scrobbled '''
+        return self.__total_num_distinct_days
 
+    def get_most_listened_to_of_all_time(self):
+        '''
+        Returns the number of listens recorded for the most listened to
+        song, artist, or album
+        '''
+        return self.__num_most_listened_to
 
-
-
-
-
-
-
+    def get_num_of_most_consecutive(self):
+        '''
+        Returns the number of listens recorded for the most consecutively
+        listened to song, artist, or album
+        '''
+        return self.__num_most_consecutive
+    
+    def get_num_most_freq_on_date(self):
+        '''
+        Returns the number of listens recorded for the most Scrobbled song,
+        artist, or album
+        '''
+        return self.__num_most_freq_on_date
 
     def __make_full_chrono_catalog(self):
         '''
@@ -415,5 +439,69 @@ class Catalog(Comparators):
     def __album_key(scrobble:Scrobble):
         return scrobble.get_track().get_album()
 
-        
+    def print_scrobbles_on_date(self, month, day, year):
+        '''
+        Prints all of the Scrobbles the user's listened to on a specific date
+        '''
+        scrobs = self.get_scrobbles_on_date(month, day, year)
+        if scrobs:
+            for scrob in scrobs:
+                print(scrob)
+                time.sleep(0.05)
+        else:
+            print('You did not listen to any music on that day!')
+                
+    def print_full_chronological_catalog(self):
+        ''' Prints the full chronological catalog to the screen '''
+        print()
+        for _, scrobs in self.__full_chrono_catalog.items():
+            print(scrobs)
+        print()
 
+    def print_song_catalog(self):
+        '''
+        Prints user's alphabetized-catalog based on song name
+        '''
+        most_listened_func = lambda catalog: catalog.most_listened_to_song()
+        catalog = self.__alpha_song_catalog
+        self.__print_catalog(most_listened_func, catalog, False)
+    
+    def print_artist_catalog(self):
+        '''
+        Prints user's alphabetized-catalog based on artist name
+        '''
+        most_listened_func = lambda catalog: catalog.most_listened_to_artist()
+        catalog = self.__alpha_artist_catalog
+        self.__print_catalog(most_listened_func, catalog, True)
+
+    def print_album_catalog(self):
+        '''
+        Prints user's alphabetized-catalog based on album name
+        '''
+        most_listened_func = lambda catalog: catalog.most_listened_to_album()
+        catalog = self.__alpha_album_catalog
+        self.__print_catalog(most_listened_func, catalog, False)
+
+    def __print_catalog(self, most_listened_func:Callable, alpha_catalog, 
+                        is_artist_catalog_request:bool):
+        most_listened_func()  # sets value of self.__num_most_listened_to
+        ''' Calculate the length of num_most_listened_to including commas '''
+        max_length = self.__num_most_listened_to
+        max_length_with_commas = f'{max_length:,}'
+        max_length = len(max_length_with_commas)
+        ''''''
+        FORMATTING = f'%{max_length}s'  # right-justified formatting
+        ''' Print the output to the screen '''
+        print()
+        for key, scrobs in alpha_catalog.items():
+            num_listens_with_commas = f'{len(scrobs):,d}'
+            formatted_num_listens = f'{FORMATTING % num_listens_with_commas}'
+            print(f'{ANSI.BRIGHT_WHITE_BOLD}{formatted_num_listens}', end='')
+            if is_artist_catalog_request:
+                # Behavior when printing artist-sorted catalog requests
+                print(f'{ANSI.RESET} {key}')
+            else:
+                key_portion = f'{ANSI.BRIGHT_CYAN}  {key}{ANSI.RESET}'
+                artist_name = f'{scrobs[0].get_track().get_artist()}'
+                print(f'{key_portion} [{artist_name}]')
+        print()
