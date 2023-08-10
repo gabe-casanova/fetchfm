@@ -1,7 +1,9 @@
-""" A class to print text to the console in different styles and colors. Adapted from java source code.
-    <https://stackoverflow.com/questions/5762491/how-to-print-color-in-console-using-system-out-println>
-"""
 class ANSI(object):
+    ''' 
+    A class to print text to the terminal with ANSI styles and colors.
+    Credit: <https://tinyurl.com/stackoverflow-ansi-help>
+    '''
+
     #  Reset 
     RESET = '\033[0m'
 

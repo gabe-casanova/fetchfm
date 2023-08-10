@@ -25,13 +25,13 @@ class Scrobble:
         # extract track information
         data = input.split('\t')
         self.is_valid = True  # start by assuming all track info is present
-        if len(data) == 4:
-            # default case
+        if '' not in data:
+            # success case: all necessary track info is present
             artist = data[1]
             album = data[2]
             song = data[3][:-1]  # removes the \n from song
         else:
-            # edge-case: input is missing necessary track information
+            # edge-case: input is missing necessary track info
             self.is_valid = False
             
         # store instance variables

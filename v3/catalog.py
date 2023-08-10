@@ -1,11 +1,8 @@
 from ansi import ANSI
 from scrobble import Scrobble
-from comparators import Comparators
-
 from datetime import date, time
 from collections import OrderedDict
 from typing import Callable
-
 import time
 
 
@@ -57,7 +54,7 @@ Public Methods:
 '''
 
 
-class Catalog(Comparators):
+class Catalog():
     '''
     A class to represent a catalog (collection) of Scrobbles
     '''
@@ -409,7 +406,7 @@ class Catalog(Comparators):
             formatted_num_listens = f'{FORMATTING % num_listens_with_commas}'
             print(f'{ANSI.BRIGHT_WHITE_BOLD}{formatted_num_listens}', end='')
             if is_artist_catalog_request:
-                # Behavior when printing artist-sorted catalog requests only
+                # Behavior when printing ARTIST-sorted catalog requests only
                 print(f'{ANSI.RESET} {key}')
             else:
                 key_portion = f'{ANSI.BRIGHT_CYAN}  {key}{ANSI.RESET}'
