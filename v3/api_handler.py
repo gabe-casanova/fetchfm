@@ -1,10 +1,10 @@
 import json
 import os
 import time
-import ansi
 import requests
 from tqdm import tqdm
 from datetime import datetime
+from ansi import ANSI
 
 # This code was written following the tutorial steps taken from this site:
 # https://www.dataquest.io/blog/last-fm-api-python/
@@ -17,6 +17,20 @@ RATE_LIMITING_TIME = 0.25
 
 username = ''
 total_num_scrobs = 0
+
+
+'''
+
+TODO
+
+add features pertaining to song LENGTH (use "track.getInfo" with attr "duration")
+
+given a specific S/A/A, what is the percentage of total S/A/A listened to (ie. "Taylor Swift is 34% of total artists listened to")
+    *   by number of scrobble mentions
+    *   by total duration time accumulated
+
+
+'''
 
 
 def main():
@@ -84,9 +98,9 @@ def show_bytey_msg_1():
     as the program fetches their data from the Last.fm API
     '''
     print()
-    print(ansi.ANSI.BRIGHT_WHITE_BOLD, end='')
+    print(ANSI.BRIGHT_WHITE_BOLD, end='')
     print('\"Please hold tight as I fetch your data from Last.fm!\"', end='')
-    print(ansi.ANSI.RESET + ' -Bytey')
+    print(ANSI.RESET + ' -Bytey')
     print()
 
 
@@ -152,10 +166,10 @@ def get_username():
     Prompts the user for their Last.fm username
     '''
     print()
-    print('What is your Last.fm username? ' + ansi.ANSI.YELLOW, end='')
+    print('What is your Last.fm username? ' + ANSI.YELLOW, end='')
     global username
     username = input()
-    print(ansi.ANSI.RESET, end='')
+    print(ANSI.RESET, end='')
 
 
 def init_user_info():
@@ -168,8 +182,9 @@ def init_user_info():
         'method': 'user.getInfo',
         'user': username
     })
+    # TODO -- add error handling if invalid username provided
     labels = ['age', 'album_count', 'artist_count', 'country', 'gender', 
-              'playcount', 'playlists', 'realname', 'subscriber', 
+              'playcount', 'playlists', 'realname', 'subscriber',
               'track_count', 'url']
     j_user = response.json()['user']
     user_info = [j_user['age'], j_user['album_count'], j_user['artist_count'],
