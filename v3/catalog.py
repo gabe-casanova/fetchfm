@@ -27,9 +27,9 @@ Public Methods:
     -  num_plays_for_artist(artist) -> int
     -  num_plays_for_album(album) -> int
   /
- >  -  num_plays_for_song_on_date(song, month, day, year) -> int
- >  -  num_plays_for_artist_on_date(artist, month, day, year) -> int
- >  -  num_plays_for_album_on_date(album, month, day, year) -> int
+    -  num_plays_for_song_on_date(song, month, day, year) -> int        TODO
+    -  num_plays_for_artist_on_date(artist, month, day, year) -> int    TODO
+    -  num_plays_for_album_on_date(album, month, day, year) -> int      TODO
   /
     -  most_played_song() -> tuple[list, int]
     -  most_played_artist() -> tuple[list, int]
@@ -43,7 +43,7 @@ Public Methods:
     -  most_consecutive_artist() -> tuple[list, int]
     -  most_consecutive_album() -> tuple[list, int]
   /
-    -  TODO 
+    -  most_streamed_day() -> tuple[list, int]                          TODO
   /
     -  most_streamed_day_for_song(song) -> tuple[list, int]
     -  most_streamed_day_for_artist(artist) -> tuple[list, int]
@@ -106,16 +106,14 @@ class Catalog():
     
     ''''''
 
+    # TODO
     def num_plays_for_song_on_date(self, song, month, day, year) -> int:
-        # TODO
         pass
 
     def num_plays_for_artist_on_date(self, artist, month, day, year) -> int:
-        # TODO
         pass
 
     def num_plays_for_album_on_date(self, album, month, day, year) -> int:
-        # TODO
         pass
 
     ''''''
@@ -274,7 +272,9 @@ class Catalog():
 
     ''''''
 
-    # TODO
+    def most_streamed_day(self) -> tuple[list, int]:
+        # TODO-- potentially account for most_streamed_week()???
+        pass
     
     ''''''
 
