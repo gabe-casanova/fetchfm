@@ -2,6 +2,16 @@ from ansi import ANSI
 from catalog import Catalog
 from api_handler import get_path, fetch_scrobbled_data
 
+# Credit: https://fsymbols.com/text-art/
+LOGO = """
+████████╗██████╗░░█████╗░░█████╗░██╗░░██╗░░░███████╗███╗░░░███╗
+╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██║░██╔╝░░░██╔════╝████╗░████║
+░░░██║░░░██████╔╝███████║██║░░╚═╝█████═╝░░░░█████╗░░██╔████╔██║
+░░░██║░░░██╔══██╗██╔══██║██║░░██╗██╔═██╗░░░░██╔══╝░░██║╚██╔╝██║
+░░░██║░░░██║░░██║██║░░██║╚█████╔╝██║░╚██╗██╗██║░░░░░██║░╚═╝░██║
+░░░╚═╝░░░╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝
+"""
+
 db = None  # global catalog
 username = ''
 
@@ -22,9 +32,10 @@ def main():
 
 def welcome_msg():
     global username
-    print(f'\nWelcome to {ANSI.BRIGHT_CYAN_BOLD}Track.fm{ANSI.RESET}!\n')
-    print('Enter your Last.fm username (or press `enter` to default to the '
-          f'current user): {ANSI.YELLOW}', end='')
+    ansi_logo = f'{ANSI.BRIGHT_CYAN_BOLD}{LOGO}{ANSI.RESET}'
+    print(f'\n{ansi_logo}\n')
+    print('Enter your Last.fm username [or press `enter` to default to the '
+          f'current user]: {ANSI.YELLOW}', end='')
     username = input()
     print(ANSI.RESET, end='')
 
@@ -36,8 +47,14 @@ def read_in_current_user():
             global username
             username = f.read()
     except (FileNotFoundError, OSError):
-        print('\n * ERROR: Please ensure you\'ve ran `python api_handler.py '
-              'fetch` before you attempt to run `python trackfm.py`\n')
+        error_header = ' * ERROR: Default failed'
+        bullet_1 = ('-> Please ensure you\'ve ran `python api_handler.py '
+                    'fetch` before you attempt to run `python trackfm.py`')
+        bullet_2 = ('-> Or, please enter your Last.fm username instead of '
+                    'defaulting to the current user')
+        print(f'\n{error_header}')
+        print(f'     {bullet_1}')
+        print(f'     {bullet_2}\n')
 
 
 def create_database():
