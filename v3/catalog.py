@@ -1,8 +1,8 @@
 from ansi import ANSI
 from scrobble import Scrobble
+from api_handler import get_track_times
 from datetime import date, time
 from collections import OrderedDict
-from typing import Callable
 import time
 
 
@@ -69,7 +69,7 @@ class Catalog():
     A class to represent a catalog (collection) of Scrobbles
     '''
 
-    def __init__(self, lines_of_text:list):
+    def __init__(self, username, lines_of_text:list):
         '''
         Create a new catalog of Scrobble objects
         '''
@@ -82,8 +82,9 @@ class Catalog():
         # use standard catalog to generate other variants
         self.__make_daily_catalog()
         self.__make_alphabetized_catalogs()
+        get_track_times(username, self.__alpha_song_catalog.values())
 
-# =========== [1] Data Retreival: ===========
+# =========== [1] Data Retrieval: ===========================================
 
     def num_plays_for_song(self, song):
         return self.__num_plays(song, self.__alpha_song_catalog)
@@ -142,7 +143,7 @@ class Catalog():
         catalog = self.__alpha_album_catalog
         return self.__most_played(self.__by_album, catalog)
     
-    def __most_played(self, get_field:Callable, alpha_catalog):
+    def __most_played(self, get_field, alpha_catalog):
         result = []
         max_so_far = 0
         for _, scrobs in alpha_catalog.items():
@@ -208,7 +209,7 @@ class Catalog():
     def most_consecutive_album(self):
         return self.__most_consecutive(self.__by_album)
 
-    def __most_consecutive(self, get_field:Callable) -> tuple[list, int]:
+    def __most_consecutive(self, get_field) -> tuple[list, int]:
         '''
         Returns a list of item names (song, artist, or album names) which 
         the user has listened to the most times in a row. Also returns an int
@@ -259,7 +260,7 @@ class Catalog():
                 second_item = curr
         return result, longest_length
                 
-    def __is_consecutive(self, i, length, most_consec, get_field:Callable):
+    def __is_consecutive(self, i, length, most_consec, get_field):
         if most_consec != get_field(self.__stnd_catalog[i]):
             return False
         # iterate over the length for the most consecutive item so far
@@ -420,7 +421,7 @@ class Catalog():
         ''' Returns the total num of distinct days the user has Scrobbled '''
         return self.__num_distinct_days
     
-# =========== [2] Printing: ===========
+# =========== [2] Printing: =================================================
 
     def print_scrobbles_on_date(self, month, day, year):
         '''
@@ -466,9 +467,9 @@ class Catalog():
         catalog = self.__alpha_album_catalog
         self.__print_catalog(most_listened_func, catalog, False)
 
-    def __print_catalog(self, most_listened_func:Callable, alpha_catalog, 
+    def __print_catalog(self, most_listened_func, alpha_catalog, 
                         is_artist_catalog_request:bool):
-        ''' Calculate the length of num_most_listened_to including commas '''
+        ''' Get the length of most listened to item # including commas '''
         _, max_length = most_listened_func()
         max_length_with_commas = f'{max_length:,}'
         max_length = len(max_length_with_commas)
@@ -488,7 +489,7 @@ class Catalog():
                 print(f'{key_portion} [{artist_name}]')
         print()
 
-# =========== [3] Utility: ===========
+# =========== [3] Utility: ==================================================
 
     def __by_song(self, scrobble:Scrobble):
         return scrobble.get_track().get_song()
@@ -499,7 +500,7 @@ class Catalog():
     def __by_album(self, scrobble:Scrobble):
         return scrobble.get_track().get_album()
 
-# =========== [4] Catalog Generation: ===========
+# =========== [4] Catalogs: =================================================
         
     def __make_daily_catalog(self):
         '''
@@ -533,7 +534,7 @@ class Catalog():
         self.__alpha_artist_catalog = artist_catalog
         self.__alpha_album_catalog = album_catalog
 
-    def __make_alpha_catalog(self, get_field:Callable):
+    def __make_alpha_catalog(self, get_field):
         '''
         Returns a new catalog alphabetically-sorted by the specified get_field
         (either song, artist, or album name)

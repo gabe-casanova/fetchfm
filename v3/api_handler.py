@@ -1,182 +1,41 @@
 import json
 import os
+import sys
 import time
 import requests
 from tqdm import tqdm
 from datetime import datetime
 from ansi import ANSI
 
-# This code was written following the tutorial steps taken from this site:
-# https://www.dataquest.io/blog/last-fm-api-python/
-
-API_KEY = open('v3/admin/api_key.txt').read()
-USER_AGENT = open('v3/admin/user_agent.txt').read()
-HEADER_FORMAT = 'json'
-SUCCESS_STATUS_CODE = 200
-RATE_LIMITING_TIME = 0.25
-
-username = ''
-total_num_scrobs = 0
+API_KEY:str = open('v3/admin/api_key.txt').read()        #  ** Replace with your API_KEY **
+USER_AGENT:str = open('v3/admin/user_agent.txt').read()  #  ** Replace with your USER_AGENT **
 
 
-'''
+# =========== [1] Fetch Scrobbled Data: =====================================
 
-TODO
-
-add features pertaining to song LENGTH (use "track.getInfo" with attr "duration")
-
-given a specific S/A/A, what is the percentage of total S/A/A listened to (ie. "Taylor Swift is 34% of total artists listened to")
-    *   by number of scrobble mentions
-    *   by total duration time accumulated
-
-
-'''
-
-
-def main():
+def fetch_scrobbled_data(username):
     '''
-    Prompts the user for their Last.fm username, generates API requests,
-    and populates the user's scrobbled_data.txt file
+    Begins the process of fetching all of the user's scrobbled data and saving
+    it in a seperate text file stored at /scrobbled_data/{username}.txt
     '''
-    # tqdm.pandas()  # useful for displaying progress bar
-    get_username()
-    init_user_info()
-    get_scrobbled_data()
+    if username == '':
+        username = get_username()
+    init_user_info_file(username)
+    get_recent_tracks(username)  # TODO-- make it so that we only append NEW scrobbles if the txt file already has some
     print_bytey()
 
 
-def print_bytey():
-    '''
-    Prints Bytey the ascii-dog to the terminal
-       ,'.-.'. 
-       '\~ o/` ,,
-        { @ } f
-        /`-'\$ 
-       (_/-\_) 
-    Credit: https://www.asciiart.eu/animals/dogs
-    '''
-    print()
-    print(',\'.-.\'.')
-    print('\'\\~ o/` ,,')
-    print(' { @ } f')
-    print(' /`-\'\\$')
-    print('(_/-\\_) ')
-    print()
-
-
-def get_scrobbled_data():
-    '''
-    Acquires all of the scrobbled data for the user, using the Last.fm API
-    '''
-    page = 1
-    total_pages = get_total_pages()
-    show_bytey_msg_1()
-    prog_bar = tqdm(total=total_pages)
-    while page <= total_pages:
-        prog_bar.update(1)
-        payload = {
-            'method': 'user.getRecentTracks',
-            'limit': 200,
-            'user': username,
-            'page': page
-        }
-        response = lastfm_get(payload)
-        if is_api_error(response):
-            break
-        # loop through the tracks listed on this page
-        j_recenttracks = response.json()['recenttracks']
-        get_scrobs_from_page(j_recenttracks)
-        time.sleep(RATE_LIMITING_TIME)
-        page += 1
-    # end of while loop
-    prog_bar.close()
-
-
-def show_bytey_msg_1():
-    '''
-    Prints a message from Bytey the ascii-dog to inform the user to wait
-    as the program fetches their data from the Last.fm API
-    '''
-    print()
-    print(ANSI.BRIGHT_WHITE_BOLD, end='')
-    print('\"Please hold tight as I fetch your data from Last.fm!\"', end='')
-    print(ANSI.RESET + ' -Bytey')
-    print()
-
-
-def get_total_pages():
-    '''
-    Helper function to get the totalPages field of API response. Used
-    because we need to know the total number of pages for the progress bar.
-    Side effect of this fxn is that it ALSO sets the global total_num_scrobs
-    '''
-    payload = {
-        'method': 'user.getRecentTracks',
-        'limit': 200,
-        'user': username,
-        'page': 1
-    }
-    response = lastfm_get(payload)
-    if is_api_error(response):
-        return -1
-    j_recenttracks = response.json()['recenttracks']
-    global total_num_scrobs
-    total_num_scrobs = j_recenttracks['@attr']['total']  # side effect
-    return int(j_recenttracks['@attr']['totalPages'])
-
-
-def is_api_error(response) -> bool:
-    '''
-    Returns a bool indicating if an API request was successful or not
-    '''
-    if response == None:
-        print('\'response == None\'')
-        return True
-    elif response.status_code != SUCCESS_STATUS_CODE:
-        print('API Request Error: ' + response.status_code)
-        return True
-    return False
-
-
-def get_scrobs_from_page(j_recenttracks):
-    '''
-    Helper function to gather the scrobbles from the current API request and
-    write the data generated to a txt file in the scrobbled_data/ directory
-    '''
-    j_tracks = j_recenttracks['track']
-    for track in j_tracks:
-        album = track['album']['#text']
-        artist = track['artist']['#text']
-        song = track['name']
-        date = track.get('date')  # check that this scrob contains 'date' key
-        if date != None:
-            # disregards tracks that are currently being scrobbled
-            #   todo-- find a solution that avoids this?
-            date = date['#text']
-            scrob = date + '\t' + artist + '\t' + album + '\t' + song
-            # time to write scrob to the file!
-            scrobbled_data_path = get_path('scrobbled_data', f'{username}.txt')
-            with open(scrobbled_data_path, 'a') as f:
-                f.write(f'{scrob}\n')
-                f.close()
-
-
 def get_username():
-    '''
-    Prompts the user for their Last.fm username
-    '''
-    print()
-    print('What is your Last.fm username? ' + ANSI.YELLOW, end='')
-    global username
+    print('\nWhat is your Last.fm username? ' + ANSI.YELLOW, end='')
     username = input()
     print(ANSI.RESET, end='')
+    return username
 
 
-def init_user_info():
+def init_user_info_file(username):
     '''
-    Make a call to Last.fm API to obtain info pertaining to the user. Once
-    you make a successful request, populate the contents of the request into
-    a text file to be used later on in the Trackfm program.
+    Uses the contents of the user info API request to populate a text file to
+    be used later on during the Trackfm program.
     '''
     response = lastfm_get({
         'method': 'user.getInfo',
@@ -208,31 +67,109 @@ def init_user_info():
     username_path = get_path('user_info', 'current_user.txt')
     with open(username_path, 'w') as f:
         f.write(username)
-
-
-def get_path(subdir, file) -> str:
-    '''
-    Returns the abs path for a newly created file in the specified subdirectory
-    '''
-    v3_path = os.path.dirname(__file__)
-    subdir_path = os.path.join(v3_path, subdir)
-    # If the subdirectory doesn't exist, create it dynamically
-    if not os.path.exists(subdir_path):
-        os.makedirs(subdir_path)
-    return os.path.join(subdir_path, file)
     
 
+def get_recent_tracks(username):
+    '''
+    Fetches all of the user's scrobbled data using the Last.fm API
+    '''
+    RATE_LIMITING_TIME = 0.25
+    page = 1
+    total_pages = get_num_total_pages(username)
+    # Inform the user to wait as the program fetches their data from Last.fm
+    print(f'\n{ANSI.BRIGHT_WHITE_BOLD}', end='')
+    print('\"Please hold tight as I fetch your data from Last.fm!\"', end='')
+    print(f'{ANSI.RESET} -Bytey\n')
+    # Begin process of fetching data from Last.fm
+    prog_bar = tqdm(total=total_pages)
+    while page <= total_pages:
+        prog_bar.update(1)
+        payload = {
+            'method': 'user.getRecentTracks',
+            'limit': 200,
+            'user': username,
+            'page': page
+        }
+        response = lastfm_get(payload)
+        if is_api_error(response):
+            break
+        # loop through the tracks listed on this page
+        j_recenttracks = response.json()['recenttracks']
+        write_scrobbles_to_file(j_recenttracks, username)
+        time.sleep(RATE_LIMITING_TIME)
+        page += 1
+    # end of while loop, terminate the progress bar
+    prog_bar.close()
+
+
+def write_scrobbles_to_file(j_recenttracks, username):
+    '''
+    Helper function to gather the scrobbles from the current API request and
+    write the data generated into a text file in the scrobbled_data/ directory
+    '''
+    j_tracks = j_recenttracks['track']
+    for track in j_tracks:
+        album = track['album']['#text']
+        artist = track['artist']['#text']
+        song = track['name']
+        date = track.get('date')  # check that this scrob contains 'date' key
+        if date != None:
+            # disregards tracks that are currently being scrobbled
+            date = date['#text']
+            scrob = date + '\t' + artist + '\t' + album + '\t' + song
+            # time to write scrob to the file!
+            scrobbled_data_path = get_path('scrobbled_data', f'{username}.txt')
+            with open(scrobbled_data_path, 'a') as f:
+                f.write(f'{scrob}\n')
+                f.close()
+
+
+def get_num_total_pages(username):
+    '''
+    Returns the user's overall `totalPages` used to instantiate progress bar
+    '''
+    payload = {
+        'method': 'user.getRecentTracks',
+        'limit': 200,
+        'user': username,
+        'page': 1
+    }
+    response = lastfm_get(payload)
+    if is_api_error(response):
+        return -1
+    j_recenttracks = response.json()['recenttracks']
+    return int(j_recenttracks['@attr']['totalPages'])
+
+
+# =========== [2] Retrieve Track Duration Info: =============================
+
+def get_track_times(username, unique_song_scrobs):
+    # TODO-- iterate over all unique songs to generate track durations 
+    #           -> populate txt file
+    payload = {
+        'method': 'track.getInfo',
+        'track': 'Toxic',
+        'artist': 'Britney Spears',
+        'username': username,
+        'autocorrect': True
+    }
+    response = lastfm_get(payload)
+    if not is_api_error(response):
+        jprint(response.json())
+
+
+# =========== [3] Utility: ==================================================
+    
 def lastfm_get(payload) -> requests:
     '''
-    Generalized function for making a Last.fm API request.
-    Code inspired from the tutorial linked at top of file.
+    Generalized function for making a Last.fm API request
     '''
     # Define headers and URL
     headers = {'user-agent': USER_AGENT}
     url = 'https://ws.audioscrobbler.com/2.0/'
     # Add API key and format to the payload
     payload['api_key'] = API_KEY
-    payload['format'] = HEADER_FORMAT
+    payload['format'] = 'json'
     # Generate the request
     response = requests.get(url, headers=headers, params=payload)
     if is_api_error(response):
@@ -240,15 +177,60 @@ def lastfm_get(payload) -> requests:
     return response
 
 
+def get_path(subdir, file) -> str:
+    '''
+    Returns the abs path for a newly created file in the specified 
+    subdirectory
+    '''
+    v3_path = os.path.dirname(__file__)
+    subdir_path = os.path.join(v3_path, subdir)
+    # If the subdirectory doesn't exist, create it dynamically
+    if not os.path.exists(subdir_path):
+        os.makedirs(subdir_path)
+    return os.path.join(subdir_path, file)
+
+
+def is_api_error(response):
+    '''
+    Returns a bool indicating if an API request was successful or not
+    '''
+    SUCCESS_STATUS_CODE = 200
+    if response == None:
+        print('\'response == None\'')
+        return True
+    elif response.status_code != SUCCESS_STATUS_CODE:
+        print('API Request Error: ' + response.status_code)
+        return True
+    return False
+
+
+def print_bytey():
+    '''
+    Prints Bytey the ascii-dog to the terminal
+       ,'.-.'. 
+       '\~ o/` ,,
+        { @ } f
+        /`-'\$ 
+       (_/-\_) 
+    Credit: https://www.asciiart.eu/animals/dogs
+    '''
+    print('\n,\'.-.\'.')
+    print('\'\\~ o/` ,,')
+    print(' { @ } f')
+    print(' /`-\'\\$')
+    print('(_/-\\_) \n')
+
+
 def jprint(obj):
     '''
-    Create a formatted string of the Python JSON object.
-    Code inspired from the tutorial linked at top of file.
+    Create a formatted string of the Python JSON object
     '''
     text = json.dumps(obj, sort_keys=True, indent=4)
     print(text)
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == 'fetch':
+        # only run fetch_scrobbled_data() if explicitly asked to
+        fetch_scrobbled_data('')
     
