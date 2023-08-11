@@ -16,7 +16,7 @@ db = None  # global catalog
 username = ''
 
 
-# =========== [1] User Interface: ===========================================
+# =========== [1] Main Program/UI: ==========================================
 
 def main():
     ''' Begins the text-based UI for the Trackfm program '''
@@ -41,6 +41,10 @@ def main():
 
 
 def run_trackfm():
+    '''
+    This is where I read in the scrobbled_data.txt file, create the global
+    catalog variable, and run options via the text-based UI
+    '''
     create_database()
 
 

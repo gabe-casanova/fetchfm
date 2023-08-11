@@ -151,19 +151,29 @@ def get_num_total_pages(username):
 
 # =========== [2] Retrieve Track Duration Info: =============================
 
-def get_track_times(username, unique_song_scrobs):
+def get_track_times(username, alpha_song_catalog):
     # TODO-- iterate over all unique songs to generate track durations 
     #           -> populate txt file
-    payload = {
-        'method': 'track.getInfo',
-        'track': 'Toxic',
-        'artist': 'Britney Spears',
-        'username': username,
-        'autocorrect': True
-    }
-    response = lastfm_get(payload)
-    if not is_api_error(response):
-        jprint(response.json())
+    durations = []
+    for scrobs in alpha_song_catalog.values():
+        track = scrobs[0].get_track()
+        song_name = track.get_song()
+        artist_name = track.get_artist()    
+        payload = {
+            'method': 'track.getInfo',
+            'track': song_name,
+            'artist': artist_name,
+            'username': username,
+            'autocorrect': True
+        }
+        response = lastfm_get(payload)
+        if not is_api_error(response):
+            j_response = response.json()
+            duration = j_response['track']['duration']
+            print(song_name, duration)
+    #         durations.append(duration)
+    # for duration in durations:
+    #     print(duration)
 
 
 # =========== [3] Utility: ==================================================

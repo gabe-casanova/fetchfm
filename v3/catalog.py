@@ -82,7 +82,7 @@ class Catalog():
         # use standard catalog to generate other variants
         self.__make_daily_catalog()
         self.__make_alphabetized_catalogs()
-        get_track_times(username, self.__alpha_song_catalog.values())
+        get_track_times(username, self.__alpha_song_catalog)
 
 # =========== [1] Data Retrieval: ===========================================
 
