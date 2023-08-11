@@ -13,16 +13,25 @@ USER_AGENT:str = open('v3/admin/user_agent.txt').read()  #  ** Replace with your
 
 # =========== [1] Fetch Scrobbled Data: =====================================
 
-def fetch_scrobbled_data(username):
+def fetch_scrobbled_data(username) -> bool:
     '''
     Begins the process of fetching all of the user's scrobbled data and saving
     it in a seperate text file stored at /scrobbled_data/{username}.txt
     '''
     if username == '':
         username = get_username()
-    init_user_info_file(username)
-    get_recent_tracks(username)  # TODO-- make it so that we only append NEW scrobbles if the txt file already has some
-    print_bytey()
+    # error check to ensure the username is a valid Last.fm user
+    if is_valid_user(username):
+        init_user_info_file(username)
+        get_recent_tracks(username)  # TODO-- make it so that we only append NEW scrobbles if the txt file already has some
+        print_bytey()
+        return True
+    else:
+        ansi_user = f'{ANSI.BRIGHT_RED}{username}{ANSI.RESET}'
+        msg = (f' * Sorry, but it seems {ansi_user} is not a valid Last.fm '
+               'user!\n')
+        print(msg)
+        return False
 
 
 def get_username():
@@ -41,7 +50,6 @@ def init_user_info_file(username):
         'method': 'user.getInfo',
         'user': username
     })
-    # TODO -- add error handling if invalid username provided
     labels = ['age', 'album_count', 'artist_count', 'country', 'gender', 
               'playcount', 'playlists', 'realname', 'subscriber',
               'track_count', 'url']
@@ -190,16 +198,29 @@ def get_path(subdir, file) -> str:
     return os.path.join(subdir_path, file)
 
 
+def is_valid_user(username) -> bool:
+    '''
+    Returns a bool indicating if the given username is a valid Last.fm user
+    '''
+    payload = {
+        'method': 'user.getInfo',
+        'user': username
+    }
+    response = lastfm_get(payload)
+    return not is_api_error(response)
+
+
 def is_api_error(response):
     '''
     Returns a bool indicating if an API request was successful or not
     '''
     SUCCESS_STATUS_CODE = 200
     if response == None:
-        print('\'response == None\'')
         return True
     elif response.status_code != SUCCESS_STATUS_CODE:
-        print('API Request Error: ' + response.status_code)
+        # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
+        # print(f'\tAPI Request Error: {str(response.status_code)}')
+        # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
         return True
     return False
 
@@ -232,5 +253,5 @@ def jprint(obj):
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'fetch':
         # only run fetch_scrobbled_data() if explicitly asked to
-        fetch_scrobbled_data('')
+        _ = fetch_scrobbled_data('')
     
