@@ -42,7 +42,7 @@ def main():
 
 def run_trackfm():
     create_database()
-    print('Radio', db.get_track_length_of('Radio', 'Lana Del Rey'))
+    # print(db.user_time_spent_listening_to_album('SOUR', 'Olivia Rodrigo'))
 
 
 # =========== [2] Miscellaneous: ============================================

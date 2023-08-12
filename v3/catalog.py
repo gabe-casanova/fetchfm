@@ -1,7 +1,7 @@
 from ansi import ANSI
 from scrobble import Scrobble
-from api_handler import fetch_duration_data_for
-from datetime import date, time
+from api_handler import fetch_song_duration, fetch_album_duration
+from datetime import date, timedelta, time as dt_time
 from collections import OrderedDict
 import time
 
@@ -24,15 +24,16 @@ Instance Variables:
 '''
 ------------------------------------------------------------------------------
 Public Methods:
-    -  get_track_length_of(song, artist) -> time
+    -  song_length(song, artist) ->  -> tuple[str, str, dt_time]
+    -  user_time_spent_listening_to_album(album, artist) -> tuple[str, str, int, int]
   /
     -  num_plays_for_song(song) -> int
     -  num_plays_for_artist(artist) -> int
     -  num_plays_for_album(album) -> int
   /
-    -  num_plays_for_song_on_date(song, month, day, year) -> int        TODO
-    -  num_plays_for_artist_on_date(artist, month, day, year) -> int    TODO
-    -  num_plays_for_album_on_date(album, month, day, year) -> int      TODO
+    -  num_plays_for_song_on_date(song, month, day, year) -> int
+    -  num_plays_for_artist_on_date(artist, month, day, year) -> int
+    -  num_plays_for_album_on_date(album, month, day, year) -> int
   /
     -  most_played_song() -> tuple[list, int]
     -  most_played_artist() -> tuple[list, int]
@@ -46,7 +47,7 @@ Public Methods:
     -  most_consecutive_artist() -> tuple[list, int]
     -  most_consecutive_album() -> tuple[list, int]
   /
-    -  most_streamed_day() -> tuple[list, int]                          TODO
+    -  most_streamed_day_overall() -> tuple[list, int]
   /
     -  most_streamed_day_for_song(song) -> tuple[list, int]
     -  most_streamed_day_for_artist(artist) -> tuple[list, int]
@@ -89,11 +90,54 @@ class Catalog():
 
 # =========== [1] Data Retrieval: ===========================================
 
-    def get_track_length_of(self, song:str, artist:str) -> time:
+    def song_length(self, song:str, artist:str):
         '''
-        Returns the length of the provided track (defined by song and artist)
+        Returns a tuple of 'track length info' for the provided track
         '''
-        return fetch_duration_data_for(song, artist, self.__username)
+        return fetch_song_duration(song, artist, self.__username)
+    
+
+    # TODO-- write a function to calculate the total time listened to a given song
+
+    # TODO-- write a function to calculate the total time listened to a given artist
+
+    
+    def user_time_spent_listening_to_album(self, album, artist) -> tuple[str, str, int, int]:
+        '''
+        Returns a tuple of information related to the amount of total time the
+        user has spent listening to the given album.
+        ------
+        Tuple contains...
+            - formatted album name
+            - formatted artist name
+            - total time in seconds
+            - userplaycount
+        '''
+        result = fetch_album_duration(album, artist, self.__username)
+        formatted_album = result[0]
+        formatted_artist = result[1]
+        track_list_dict = result[2]
+        userplaycount = result[3]
+        total_time = timedelta(seconds=0)
+        for song, time_obj in track_list_dict.items():
+            if self.__has_zero_time(time_obj):
+                # TODO-- use a flag to indicate to user that some time data was missing from Last.fm?
+                continue
+            num_plays = self.num_plays_for_song(song)
+            if num_plays <= 0:
+                continue
+            # calculate the total time spent listening to this song
+            total_seconds = (time_obj.hour * 3600 + time_obj.minute * 60 
+                             + time_obj.second) * num_plays
+            total_time += timedelta(seconds=total_seconds)
+        total_time = total_time.total_seconds()
+        return formatted_album, formatted_artist, total_time, userplaycount
+
+
+    def __has_zero_time(self, time_obj:dt_time):
+        return (time_obj.hour == 0 and time_obj.minute == 0 
+                and time_obj.second == 0)
+           
     
     ''''''
 
@@ -118,15 +162,27 @@ class Catalog():
     
     ''''''
 
-    # TODO
-    def num_plays_for_song_on_date(self, song, month, day, year) -> int:
-        pass
+    def num_plays_for_song_on_date(self, song, month, day, year):
+        get_field = self.__by_song
+        return self.__num_plays_on_date(song, month, day, year, get_field)
 
-    def num_plays_for_artist_on_date(self, artist, month, day, year) -> int:
-        pass
+    def num_plays_for_artist_on_date(self, artist, month, day, year):
+        get_field = self.__by_artist
+        return self.__num_plays_on_date(artist, month, day, year, get_field)
 
-    def num_plays_for_album_on_date(self, album, month, day, year) -> int:
-        pass
+    def num_plays_for_album_on_date(self, album, month, day, year):
+        get_field = self.__by_album
+        return self.__num_plays_on_date(album, month, day, year, get_field)
+
+    def __num_plays_on_date(self, item, month, day, year, get_field):
+        scrobs = self.get_scrobbles_on_date(month, day, year)
+        if len(scrobs) == 0:
+            return 0
+        num_plays = 0
+        for scrob in scrobs:
+            if item == get_field(scrob):
+                num_plays += 1
+        return num_plays
 
     ''''''
 
@@ -284,9 +340,21 @@ class Catalog():
 
     ''''''
 
-    def most_streamed_day(self) -> tuple[list, int]:
-        # TODO-- potentially account for most_streamed_week()???
-        pass
+    def most_streamed_day_overall(self) -> tuple[list, int]:
+        '''
+        Returns a list of day(s) in which the user scrobbled the most, also
+        returns the number of scrobbles listened to on the most streamed day(s)
+        '''
+        max_so_far = 0
+        result = []
+        for dt, scrobs in self.__daily_catalog.items():
+            num_scrobs = len(scrobs)
+            if num_scrobs > max_so_far:
+                max_so_far = num_scrobs
+                result = [dt]
+            elif num_scrobs == max_so_far:
+                result.append(dt)
+        return result, max_so_far
     
     ''''''
 
@@ -351,7 +419,10 @@ class Catalog():
             self.__print_oob_date_error_msg(requested_date)
             return []
         # if we get here we have a date that falls within user's bounds
-        return self.__daily_catalog.get(requested_date)
+        if requested_date in self.__daily_catalog:
+            return self.__daily_catalog.get(requested_date)
+        else:
+            return []
 
     def __is_valid_date(self, month, day, year):
         if month < 1 or day < 1 or year < 0 or month > 12 or day > 31:
@@ -410,8 +481,8 @@ class Catalog():
         ''' print the error message to the user '''
         # print the formatted date
         ansi_req_date = f'{ANSI.BRIGHT_CYAN_BOLD}{formatted_date}{ANSI.RESET}'
-        print(f' * Sorry, but {ansi_req_date} is not within the range of your \
-              scrobbled data:', end='')
+        print(f' * Sorry, but {ansi_req_date} is not within the range of your '
+              'scrobbled data: ', end='')
         # print the formatted start and end range
         ansi_start_date = f'{ANSI.BRIGHT_CYAN}{formatted_start}{ANSI.RESET}'
         ansi_end_date = f'{ANSI.BRIGHT_CYAN}{formatted_end}{ANSI.RESET}'

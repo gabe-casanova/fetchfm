@@ -11,6 +11,8 @@ from ansi import ANSI
 API_KEY:str = open('v3/admin/api_key.txt').read()        #  ** Replace with your API_KEY **
 USER_AGENT:str = open('v3/admin/user_agent.txt').read()  #  ** Replace with your USER_AGENT **
 
+song_length_cache = {}
+
 
 # =========== [1] Fetch Scrobbled Data: =====================================
 
@@ -21,7 +23,7 @@ def fetch_scrobbled_data(username) -> bool:
     '''
     if username == '':
         # only prompt the user for their username if we weren't provided one
-        username = get_username()
+        username = __get_username()
     if is_valid_user(username):
         # error check to ensure the username is a valid Last.fm user
         init_user_info_file(username)
@@ -34,13 +36,6 @@ def fetch_scrobbled_data(username) -> bool:
                'user!\n')
         print(msg)
         return False
-
-
-def get_username():
-    print('\nWhat is your Last.fm username? ' + ANSI.YELLOW, end='')
-    username = input()
-    print(ANSI.RESET, end='')
-    return username
 
 
 def init_user_info_file(username):
@@ -84,8 +79,8 @@ def init_user_info_file(username):
         f.write(username)
     
 
-# TODO-- make it so that we only append NEW scrobbles if the txt file already has some
 def get_recent_tracks(username):
+    # TODO-- make it so that we only append NEW scrobbles if the txt file already has some
     '''
     Fetches all of the user's scrobbled data using the Last.fm API
     '''
@@ -98,7 +93,7 @@ def get_recent_tracks(username):
     Path(scrobbled_data_path).touch()
     # Begin process of fetching data from Last.fm
     page = 1
-    total_pages = get_num_total_pages(username)
+    total_pages = __get_num_total_pages(username)
     prog_bar = tqdm(total=total_pages)
     while page <= total_pages:
         prog_bar.update(1)
@@ -113,14 +108,21 @@ def get_recent_tracks(username):
             break
         # loop through the tracks listed on this page
         j_recenttracks = response.json()['recenttracks']
-        write_scrobbles_to_file(j_recenttracks, username)
+        __write_scrobbles_to_file(j_recenttracks, username)
         time.sleep(0.25)  # rate limit
         page += 1
     # end of while loop, terminate the progress bar
     prog_bar.close()
 
 
-def write_scrobbles_to_file(j_recenttracks, username):
+def __get_username():
+    print('\nWhat is your Last.fm username? ' + ANSI.YELLOW, end='')
+    username = input()
+    print(ANSI.RESET, end='')
+    return username
+
+
+def __write_scrobbles_to_file(j_recenttracks, username):
     '''
     Helper function to gather the scrobbles from the current API request and
     write the data generated into a text file in the scrobbled_data/ directory
@@ -142,7 +144,7 @@ def write_scrobbles_to_file(j_recenttracks, username):
                 f.close()
 
 
-def get_num_total_pages(username):
+def __get_num_total_pages(username):
     '''
     Returns the user's overall `totalPages` used to instantiate progress bar
     '''
@@ -159,30 +161,116 @@ def get_num_total_pages(username):
     return int(j_recenttracks['@attr']['totalPages'])
 
 
-# =========== [2] Retrieve Track Duration Info: =============================
+# =========== [2] Fetch Song/Album Duration: ================================
+    
+def fetch_song_duration(song, artist, user) -> tuple[str, str, dt_time]:
+    '''
+    Makes an API request to retrieve the song length for the provided track.
+    -----
+    If a track length is found: will return a tuple including the correctly
+    formatted song name, correctly formatted artist name, and track length (as 
+    a datetime.time obj)
+    -----
+    If a track length is NOT found: will return a tuple including the provided 
+    song name, provided artist name, and None for the track length (as a
+    datetime.time obj)
+    '''
+    # check the track length cache to see if we've made this request before
+    if song_length_cache:
+        for (cache_song, cache_artist), time_obj in song_length_cache.items():
+            if (cache_song.lower() == song.lower() and
+                    cache_artist.lower() == artist.lower()):
+                # we found a match for the given request
+                return cache_song, cache_artist, time_obj
+    ''' if we get here, make an API request for a track we haven't cached '''
+    j_response = fetch_song_metadata(song, artist, user)
+    if j_response:
+        duration = j_response['track']['duration']
+        # store corrected names (without any misspellings) into cache dict
+        retrieved_song = j_response['track']['name']
+        retrieved_artist = j_response['track']['artist']['name']
+        time_obj = __create_time_obj_from_milliseconds(duration)
+        # store the successful track length info into the cache
+        song_length_cache[(retrieved_song, retrieved_artist)] = time_obj
+        return retrieved_song, retrieved_artist, time_obj
+    else:
+        return song, artist, None
+    
 
-def fetch_duration_data_for(song_name, artist_name, username):
+def fetch_album_duration(album, artist, user) -> tuple[str, str, dict, int]:
     '''
-    Makes an API request to retreive the track length for the provided track
-    and returns a datetime.time containing the track length (or None if the
-    provided song and artist names do not result in a valid track)
+    Makes an API request to retrieve the album duration for the provided album.
+    -----
+    If valid album name: will return a tuple including the correctly formatted 
+    album/artist names, a dictionary for track listing of the form `{song_name:
+    datetime.time obj}`, and the user's playcount for the album
     '''
+    j_response = fetch_album_metadata(album, artist, user)
+    if not j_response:
+        return album, artist, None, 0  # album does not exist
+    ''' if we get here, we know we have a valid json format '''
+    j_album = j_response['album']
+    track_list = j_album['tracks']['track']  # python list
+    result = {}
+    for track in track_list:
+        # find the duration of each track in the track list
+        song_name = track['name']
+        song_duration = 0 if track['duration'] is None else track['duration']
+        result[song_name] = create_time_obj_from_seconds(song_duration)
+    corrected_album = j_album['name']
+    corrected_artist = j_album['artist']
+    userplaycount = j_album['userplaycount']
+    return corrected_album, corrected_artist, result, userplaycount
+
+
+def create_time_obj_from_seconds(seconds):
+    '''
+    Returns a datetime.time object based on the provided amount of seconds
+    '''
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return dt_time(int(hours), int(minutes), int(seconds))
+
+
+def __create_time_obj_from_milliseconds(milliseconds):
+    '''
+    Returns a datetime.time object based on the provided milliseconds
+    '''
+    total_seconds = int(milliseconds) / 1000
+    return create_time_obj_from_seconds(total_seconds)
+
+
+# =========== [3] Fetch Song/Album Metadata: ================================
+
+def fetch_song_metadata(song, artist, user):
+    return __fetch_metadata('track.getInfo', song, artist, user)
+    
+
+def fetch_album_metadata(album, artist, user):
+    return __fetch_metadata('album.getInfo', album, artist, user)
+
+
+def __fetch_metadata(method, item, artist, user) -> json:
+    '''
+    Makes an API request to retrieve the Last.fm metadata for the given item; 
+    currently item must either be a 'song' or 'album' name
+    '''
+    item_key = 'track' if method == 'track.getInfo' else 'album'
     payload = {
-        'method': 'track.getInfo',
-        'track': song_name,
-        'artist': artist_name,
-        'username': username,
+        'method': method,
+        item_key: item,
+        'artist': artist,
+        'username': user,
         'autocorrect': True
     }
     response = lastfm_get(payload)
-    if not is_api_error(response) and 'track' in response.json():
-        duration = response.json()['track']['duration']
-        return create_time_obj_from_milliseconds(duration)
+    if not is_api_error(response) and item_key in response.json():
+        return response.json()
     else:
         return None
 
 
-# =========== [3] Utility: ==================================================
+# =========== [4] Utility: ==================================================
     
 def lastfm_get(payload) -> requests:
     '''
@@ -239,16 +327,6 @@ def is_api_error(response):
         # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
         return True
     return False
-
-
-def create_time_obj_from_milliseconds(milliseconds) -> dt_time:
-    '''
-    Returns a datetime.time object based on the provided milliseconds
-    '''
-    total_seconds = int(milliseconds) / 1000
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return dt_time(int(hours), int(minutes), int(seconds))
 
 
 def print_bytey():
