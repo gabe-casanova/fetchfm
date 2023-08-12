@@ -1,6 +1,6 @@
 from ansi import ANSI
 from scrobble import Scrobble
-from api_handler import get_track_time_for
+from api_handler import fetch_duration_data_for
 from datetime import date, time
 from collections import OrderedDict
 import time
@@ -15,7 +15,8 @@ Instance Variables:
         ->  __alpha_song_catalog        OrderedDict(str, list(Scrobble))
         ->  __alpha_artist_catalog      "
         ->  __alpha_album_catalog       "
-    Numerics:
+    Miscellaneous:
+        ->  __username                  str
         ->  __num_distinct_days         int
 ------------------------------------------------------------------------------
 '''
@@ -23,6 +24,8 @@ Instance Variables:
 '''
 ------------------------------------------------------------------------------
 Public Methods:
+    -  get_track_length_of(song, artist) -> time
+  /
     -  num_plays_for_song(song) -> int
     -  num_plays_for_artist(artist) -> int
     -  num_plays_for_album(album) -> int
@@ -73,6 +76,7 @@ class Catalog():
         '''
         Create a new catalog of Scrobble objects
         '''
+        self.__username = username
         self.__stnd_catalog = []
         for line in lines_of_text:
             scrob = Scrobble(line)
@@ -82,10 +86,16 @@ class Catalog():
         # use standard catalog to generate other variants
         self.__make_daily_catalog()
         self.__make_alphabetized_catalogs()
-        dur = get_track_time_for('Cruel Summer', 'Taylor Swift', username)
-        print('Cruel Summer', dur)
 
 # =========== [1] Data Retrieval: ===========================================
+
+    def get_track_length_of(self, song:str, artist:str) -> time:
+        '''
+        Returns the length of the provided track (defined by song and artist)
+        '''
+        return fetch_duration_data_for(song, artist, self.__username)
+    
+    ''''''
 
     def num_plays_for_song(self, song):
         return self.__num_plays(song, self.__alpha_song_catalog)

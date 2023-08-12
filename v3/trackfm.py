@@ -41,11 +41,8 @@ def main():
 
 
 def run_trackfm():
-    '''
-    This is where I read in the scrobbled_data.txt file, create the global
-    catalog variable, and run options via the text-based UI
-    '''
     create_database()
+    print('Radio', db.get_track_length_of('Radio', 'Lana Del Rey'))
 
 
 # =========== [2] Miscellaneous: ============================================
@@ -53,9 +50,11 @@ def run_trackfm():
 def welcome_msg():
     global username
     ansi_logo = f'{ANSI.BRIGHT_CYAN_BOLD}{LOGO}{ANSI.RESET}'
+    ansi_lastfm = f'{ANSI.CYAN_BOLD}Last.fm username{ANSI.RESET}'
+    ansi_enter = f'{ANSI.BRIGHT_WHITE_BOLD}`enter`{ANSI.RESET}'
     print(f'\n{ansi_logo}\n')
-    print('Enter your Last.fm username [or press `enter` to default to the '
-          f'current user]: {ANSI.YELLOW}', end='')
+    print(f'Enter your {ansi_lastfm} or press {ansi_enter} to default to '
+          f'the current user: {ANSI.BRIGHT_BLUE}', end='')
     username = input()
     print(ANSI.RESET, end='')
 
