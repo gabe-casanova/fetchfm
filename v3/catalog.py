@@ -1,6 +1,6 @@
 from ansi import ANSI
 from scrobble import Scrobble
-from api_handler import get_track_times
+from api_handler import get_track_time_for
 from datetime import date, time
 from collections import OrderedDict
 import time
@@ -82,7 +82,8 @@ class Catalog():
         # use standard catalog to generate other variants
         self.__make_daily_catalog()
         self.__make_alphabetized_catalogs()
-        get_track_times(username, self.__alpha_song_catalog)
+        dur = get_track_time_for('Cruel Summer', 'Taylor Swift', username)
+        print('Cruel Summer', dur)
 
 # =========== [1] Data Retrieval: ===========================================
 

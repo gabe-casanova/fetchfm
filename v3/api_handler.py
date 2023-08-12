@@ -4,7 +4,7 @@ import sys
 import time
 import requests
 from tqdm import tqdm
-from datetime import datetime
+from datetime import datetime, time
 from ansi import ANSI
 
 API_KEY:str = open('v3/admin/api_key.txt').read()        #  ** Replace with your API_KEY **
@@ -151,29 +151,20 @@ def get_num_total_pages(username):
 
 # =========== [2] Retrieve Track Duration Info: =============================
 
-def get_track_times(username, alpha_song_catalog):
-    # TODO-- iterate over all unique songs to generate track durations 
-    #           -> populate txt file
-    durations = []
-    for scrobs in alpha_song_catalog.values():
-        track = scrobs[0].get_track()
-        song_name = track.get_song()
-        artist_name = track.get_artist()    
-        payload = {
-            'method': 'track.getInfo',
-            'track': song_name,
-            'artist': artist_name,
-            'username': username,
-            'autocorrect': True
-        }
-        response = lastfm_get(payload)
-        if not is_api_error(response):
-            j_response = response.json()
-            duration = j_response['track']['duration']
-            print(song_name, duration)
-    #         durations.append(duration)
-    # for duration in durations:
-    #     print(duration)
+def get_track_time_for(song_name, artist_name, username) -> time: 
+    payload = {
+        'method': 'track.getInfo',
+        'track': song_name,
+        'artist': artist_name,
+        'username': username,
+        'autocorrect': True
+    }
+    response = lastfm_get(payload)
+    if not is_api_error(response) and 'track' in response.json():
+        duration = response.json()['track']['duration']
+        return create_time_obj_from_milliseconds(duration)
+    else:
+        return None
 
 
 # =========== [3] Utility: ==================================================
@@ -233,6 +224,16 @@ def is_api_error(response):
         # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
         return True
     return False
+
+
+def create_time_obj_from_milliseconds(milliseconds) -> time:
+    '''
+    Returns a datetime.time object for the provided milliseconds
+    '''
+    total_seconds = int(milliseconds) / 1000
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return time(int(hours), int(minutes), int(seconds))
 
 
 def print_bytey():
