@@ -102,7 +102,7 @@ class Catalog():
     # TODO-- write a function to calculate the total time listened to a given artist
 
     
-    def user_time_spent_listening_to_album(self, album, artist) -> tuple[str, str, int, int]:
+    def user_time_spent_listening_to_album(self, album, artist) -> tuple[str, str, int, int, bool]:
         '''
         Returns a tuple of information related to the amount of total time the
         user has spent listening to the given album.
@@ -112,6 +112,7 @@ class Catalog():
             - formatted artist name
             - total time in seconds
             - userplaycount
+            - missing_time_flag: a bool value to indicate if Last.fm has missing time info for a given song
         '''
         result = fetch_album_duration(album, artist, self.__username)
         formatted_album = result[0]
@@ -119,9 +120,11 @@ class Catalog():
         track_list_dict = result[2]
         userplaycount = result[3]
         total_time = timedelta(seconds=0)
+        missing_time_flag = False
         for song, time_obj in track_list_dict.items():
             if self.__has_zero_time(time_obj):
                 # TODO-- use a flag to indicate to user that some time data was missing from Last.fm?
+                missing_time_flag = True
                 continue
             num_plays = self.num_plays_for_song(song)
             if num_plays <= 0:
@@ -131,7 +134,7 @@ class Catalog():
                              + time_obj.second) * num_plays
             total_time += timedelta(seconds=total_seconds)
         total_time = total_time.total_seconds()
-        return formatted_album, formatted_artist, total_time, userplaycount
+        return formatted_album, formatted_artist, total_time, userplaycount, missing_time_flag
 
 
     def __has_zero_time(self, time_obj:dt_time):
