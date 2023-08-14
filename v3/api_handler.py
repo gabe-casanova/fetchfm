@@ -167,13 +167,10 @@ def fetch_song_duration(song, artist, user) -> tuple[str, str, dt_time]:
     '''
     Makes an API request to retrieve the song length for the provided track.
     -----
-    If a track length is found: will return a tuple including the correctly
-    formatted song name, correctly formatted artist name, and track length (as 
-    a datetime.time obj)
-    -----
-    If a track length is NOT found: will return a tuple including the provided 
-    song name, provided artist name, and None for the track length (as a
-    datetime.time obj)
+    Returns a tuple containing...
+        - `str`: song name (formatted correctly if found)
+        - `str`: artist name (formatted correctly if found)
+        - `dt_time`: track length (as a datetime.time object)
     '''
     # check the track length cache to see if we've made this request before
     if song_length_cache:
@@ -201,9 +198,11 @@ def fetch_album_duration(album, artist, user) -> tuple[str, str, dict, int]:
     '''
     Makes an API request to retrieve the album duration for the provided album.
     -----
-    If valid album name: will return a tuple including the correctly formatted 
-    album/artist names, a dictionary for track listing of the form `{song_name:
-    datetime.time obj}`, and the user's playcount for the album
+    Returns a tuple containing...
+        - `str`: album name (formatted correctly if found)
+        - `str`: artist name (formatted correctly if found)
+        - `dict`: track listings of the form {song_name: datetime.time obj}
+        - `int`: user's playcount for the album
     '''
     j_response = fetch_album_metadata(album, artist, user)
     if not j_response:

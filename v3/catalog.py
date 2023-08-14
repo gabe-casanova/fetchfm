@@ -25,7 +25,9 @@ Instance Variables:
 ------------------------------------------------------------------------------
 Public Methods:
     -  song_length(song, artist) ->  -> tuple[str, str, dt_time]
-    -  user_time_spent_listening_to_album(album, artist) -> tuple[str, str, int, int]
+    -  song_listening_time(song, artist) -> tuple[str, str, float]
+    -  TODO-- calculate the total time listened to a given artist
+    -  album_listening_time(album, artist) -> tuple[str, str, float, int, bool]
   /
     -  num_plays_for_song(song) -> int
     -  num_plays_for_artist(artist) -> int
@@ -90,51 +92,70 @@ class Catalog():
 
 # =========== [1] Data Retrieval: ===========================================
 
-    def song_length(self, song:str, artist:str):
+    def song_length(self, song, artist):
         '''
         Returns a tuple of 'track length info' for the provided track
         '''
         return fetch_song_duration(song, artist, self.__username)
     
 
-    # TODO-- write a function to calculate the total time listened to a given song
-
-    # TODO-- write a function to calculate the total time listened to a given artist
+    def song_listening_time(self, song, artist):
+        '''
+        Returns information related to the amount of total time the user has
+        spent listening to the given song.
+        ---
+        Returns a tuple containing...
+            - `str`: song name (formatted correctly if found)
+            - `str`: artist name (formatted correctly if found)
+            - `int`: user's total listening time in seconds
+        '''
+        result = self.song_length(song, artist)
+        if result[2] is None:
+            # unable to find the given song in the Last.fm database
+            return song, artist, None
+        # we know the user requested a valid song
+        num_plays = self.num_plays_for_song(result[0])  # correctly formatted
+        total_time = self.__calc_song_total_time(result[2], num_plays)
+        return result[0], result[1], total_time
 
     
-    def user_time_spent_listening_to_album(self, album, artist) -> tuple[str, str, int, int, bool]:
+    def album_listening_time(self, album, artist):
         '''
-        Returns a tuple of information related to the amount of total time the
-        user has spent listening to the given album.
+        Returns information related to the amount of total time the user has 
+        spent listening to the given album.
         ------
-        Tuple contains...
-            - formatted album name
-            - formatted artist name
-            - total time in seconds
-            - userplaycount
-            - missing_time_flag: a bool value to indicate if Last.fm has missing time info for a given song
+        Returns a tuple containing...
+            - `str`: album name (formatted correctly if found)
+            - `str`: artist name (formatted correctly if found)
+            - `float`: user's total listening time in seconds
+            - `int`: user's playcount for this album
+            - `bool`: indicates if Last.fm had any missing time info
         '''
         result = fetch_album_duration(album, artist, self.__username)
-        formatted_album = result[0]
-        formatted_artist = result[1]
-        track_list_dict = result[2]
-        userplaycount = result[3]
-        total_time = timedelta(seconds=0)
         missing_time_flag = False
+        track_list_dict = result[2]
+        total_time = timedelta(seconds=0)
         for song, time_obj in track_list_dict.items():
             if self.__has_zero_time(time_obj):
-                # TODO-- use a flag to indicate to user that some time data was missing from Last.fm?
                 missing_time_flag = True
                 continue
             num_plays = self.num_plays_for_song(song)
             if num_plays <= 0:
                 continue
             # calculate the total time spent listening to this song
-            total_seconds = (time_obj.hour * 3600 + time_obj.minute * 60 
-                             + time_obj.second) * num_plays
-            total_time += timedelta(seconds=total_seconds)
+            song_seconds = self.__calc_song_total_time(time_obj, num_plays)
+            total_time += timedelta(seconds=song_seconds)
         total_time = total_time.total_seconds()
-        return formatted_album, formatted_artist, total_time, userplaycount, missing_time_flag
+        return result[0], result[1], total_time, result[3], missing_time_flag
+
+
+    def __calc_song_total_time(self, timeobj:dt_time, num_plays):
+        '''
+        Calculates the total time user has spent listening to the given song 
+        (represented by the datetime.time obj) in seconds
+        '''
+        song_len = timeobj.hour * 3600 + timeobj.minute * 60 + timeobj.second
+        return song_len * num_plays
 
 
     def __has_zero_time(self, time_obj:dt_time):
@@ -160,7 +181,7 @@ class Catalog():
         else:
             print(ANSI.RESET)
             ansi_item = f'{ANSI.BRIGHT_CYAN_BOLD}{item}{ANSI.RESET}'
-            print(f' * {ansi_item} was not found within your Last.fm data')
+            print(f' * {ansi_item} was not found within your Last.fm data\n')
         return 0
     
     ''''''

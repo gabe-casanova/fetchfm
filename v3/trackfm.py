@@ -42,7 +42,10 @@ def main():
 
 def run_trackfm():
     create_database()
-    # print(db.user_time_spent_listening_to_album('SOUR', 'Olivia Rodrigo'))
+    result = db.song_listening_time('Male Fantasy', 'Billie Eilish')
+    print(result)
+    print_seconds_human_readable(result[2])
+    print(f'{seconds_to_days(result[2]):.2f} days')
 
 
 # =========== [2] Miscellaneous: ============================================
@@ -86,6 +89,20 @@ def create_database():
     with open(file_path, 'r') as f:
         scrobbled_data = f.readlines()
         db = Catalog(username, scrobbled_data)
+
+
+# =========== [3] Utility: ==================================================
+
+def print_seconds_human_readable(total_seconds):
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    print(f'{hours}h {minutes}m {seconds}s spent listening')
+
+
+def seconds_to_days(total_seconds):
+    NUM_SECONDS_IN_DAY = 86400
+    num_days = total_seconds / NUM_SECONDS_IN_DAY
+    return num_days
 
 
 if __name__ == '__main__':
