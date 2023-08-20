@@ -45,9 +45,9 @@ class Scrobble:
         '''
         Convert a month's string representation to its int equivalent
         '''
-        months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 
+        MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 
                   'Sep', 'Oct', 'Nov', 'Dec']
-        return months.index(tgt)
+        return MONTHS.index(tgt)
     
     def get_track(self) -> TrackInfo:
         return self.__track

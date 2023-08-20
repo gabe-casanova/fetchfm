@@ -1,9 +1,11 @@
 from ansi import ANSI
 from scrobble import Scrobble
-from api_handler import fetch_song_duration, fetch_album_duration
+from api_handler import fetch_song_duration, fetch_album_duration, \
+    fetch_artist_name_corrected
 from datetime import date, timedelta, time as dt_time
 from collections import OrderedDict
 import time
+from tqdm import tqdm
 
 
 '''
@@ -25,8 +27,9 @@ Instance Variables:
 ------------------------------------------------------------------------------
 Public Methods:
     -  song_length(song, artist) ->  -> tuple[str, str, dt_time]
+  /
     -  song_listening_time(song, artist) -> tuple[str, str, float]
-    -  TODO-- calculate the total time listened to a given artist
+    -  artist_listening_time(artist) -> tuple[str, float, bool]
     -  album_listening_time(album, artist) -> tuple[str, str, float, int, bool]
   /
     -  num_plays_for_song(song) -> int
@@ -95,6 +98,11 @@ class Catalog():
     def song_length(self, song, artist):
         '''
         Returns a tuple of 'track length info' for the provided track
+        ------
+        Returns a tuple containing...
+            - `str`: song name (formatted correctly if found)
+            - `str`: artist name (formatted correctly if found)
+            - `dt_time`: track length (as a datetime.time object)
         '''
         return fetch_song_duration(song, artist, self.__username)
     
@@ -103,7 +111,7 @@ class Catalog():
         '''
         Returns information related to the amount of total time the user has
         spent listening to the given song.
-        ---
+        ------
         Returns a tuple containing...
             - `str`: song name (formatted correctly if found)
             - `str`: artist name (formatted correctly if found)
@@ -117,6 +125,51 @@ class Catalog():
         num_plays = self.num_plays_for_song(result[0])  # correctly formatted
         total_time = self.__calc_song_total_time(result[2], num_plays)
         return result[0], result[1], total_time
+    
+
+    def artist_listening_time(self, artist) -> tuple[str, float, bool]:
+        '''
+        Calculates the total time the user has listened to the given artist
+        ------
+        Returns a tuple containing...
+            - `str`: artist name (formatted correctly if found)
+            - `float`: user's total listening time in seconds
+            - `bool`: indicates if Last.fm had any missing time info
+        '''
+        corrected_artist, _ = fetch_artist_name_corrected(artist)
+        if corrected_artist not in self.__alpha_artist_catalog:
+            return corrected_artist, 0, False
+        # inform the user that the calculation process is about to begin
+        display_prog_bool = self.num_plays_for_artist(corrected_artist) > 50
+        if display_prog_bool:
+            # display progress bar
+            ANSI_BW = ANSI.BRIGHT_WHITE
+            ansi_msg = (f'{ANSI_BW}\"Hold tight as I calculate the total time '
+                        f'you\'ve listened to {corrected_artist}\"{ANSI.RESET}'
+                        ' -Bytey\n')
+            print(f'\n{ansi_msg}')
+            num_scrobs = len(self.__alpha_artist_catalog[corrected_artist])
+            prog_bar = tqdm(total=num_scrobs)
+        # iterate over user's alpha artist catalog, summing up total time
+        missing_time_flag = False
+        total_time = timedelta(seconds=0)
+        for scrob in self.__alpha_artist_catalog[corrected_artist]:
+            if display_prog_bool:
+                # update progress bar
+                prog_bar.update(1)
+            song = scrob.get_track().get_song() 
+            _, _, length = self.song_length(song, corrected_artist)
+            if self.__has_zero_time(length):
+                missing_time_flag = True
+            else:
+                song_seconds = self.__dt_obj_to_seconds(length)
+                total_time += timedelta(seconds=song_seconds)
+        if display_prog_bool:
+            # close progress bar
+            prog_bar.close()
+            print()
+        total_time = total_time.total_seconds()
+        return corrected_artist, total_time, missing_time_flag
 
     
     def album_listening_time(self, album, artist):
@@ -135,16 +188,17 @@ class Catalog():
         missing_time_flag = False
         track_list_dict = result[2]
         total_time = timedelta(seconds=0)
-        for song, time_obj in track_list_dict.items():
-            if self.__has_zero_time(time_obj):
-                missing_time_flag = True
-                continue
-            num_plays = self.num_plays_for_song(song)
-            if num_plays <= 0:
-                continue
-            # calculate the total time spent listening to this song
-            song_seconds = self.__calc_song_total_time(time_obj, num_plays)
-            total_time += timedelta(seconds=song_seconds)
+        if track_list_dict is not None:
+            for song, time_obj in track_list_dict.items():
+                if self.__has_zero_time(time_obj):
+                    missing_time_flag = True
+                    continue
+                num_plays = self.num_plays_for_song(song)
+                if num_plays <= 0:
+                    continue
+                # calculate the total time spent listening to this song
+                song_seconds = self.__calc_song_total_time(time_obj, num_plays)
+                total_time += timedelta(seconds=song_seconds)
         total_time = total_time.total_seconds()
         return result[0], result[1], total_time, result[3], missing_time_flag
 
@@ -154,8 +208,15 @@ class Catalog():
         Calculates the total time user has spent listening to the given song 
         (represented by the datetime.time obj) in seconds
         '''
-        song_len = timeobj.hour * 3600 + timeobj.minute * 60 + timeobj.second
+        song_len = self.__dt_obj_to_seconds(timeobj)
         return song_len * num_plays
+
+
+    def __dt_obj_to_seconds(self, timeobj:dt_time):
+        '''
+        Extracts the total seconds from the provided datetime.time obj
+        '''
+        return timeobj.hour * 3600 + timeobj.minute * 60 + timeobj.second
 
 
     def __has_zero_time(self, time_obj:dt_time):

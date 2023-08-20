@@ -50,10 +50,10 @@ def init_user_info_file(username):
         'method': 'user.getInfo',
         'user': username
     })
-    if is_api_error(response):
+    if response is None:
         print(' * ERROR: unable to initialize the user_info.txt file due to '
               'an API request issue')
-        return
+        return  # early return
     # if we get here, we know the API request was successful
     j_user = response.json()['user']
     user_info = [j_user['age'], j_user['album_count'], j_user['artist_count'],
@@ -80,7 +80,6 @@ def init_user_info_file(username):
     
 
 def get_recent_tracks(username):
-    # TODO-- make it so that we only append NEW scrobbles if the txt file already has some
     '''
     Fetches all of the user's scrobbled data using the Last.fm API
     '''
@@ -104,7 +103,7 @@ def get_recent_tracks(username):
             'page': page
         }
         response = lastfm_get(payload)
-        if is_api_error(response):
+        if response is None:
             break
         # loop through the tracks listed on this page
         j_recenttracks = response.json()['recenttracks']
@@ -133,7 +132,7 @@ def __write_scrobbles_to_file(j_recenttracks, username):
         artist = track['artist']['#text']
         song = track['name']
         date = track.get('date')  # check that this scrob contains 'date' key
-        if date != None:
+        if date is not None:
             # disregards tracks that are currently being scrobbled
             date = date['#text']
             scrob = date + '\t' + artist + '\t' + album + '\t' + song
@@ -155,13 +154,40 @@ def __get_num_total_pages(username):
         'page': 1
     }
     response = lastfm_get(payload)
-    if is_api_error(response):
+    if response is None:
         return -1
     j_recenttracks = response.json()['recenttracks']
     return int(j_recenttracks['@attr']['totalPages'])
 
 
-# =========== [2] Fetch Song/Album Duration: ================================
+# =========== [2] artist.getCorrection: =====================================
+
+def fetch_artist_name_corrected(artist) -> tuple[str, bool]:
+    '''
+    Makes an API request to check if the supplied artist has a correction to a 
+    canonical Last.fm artist
+    -----
+    Returns a tuple containing...
+        - `str`: artist name (formatted correctly if found)
+        - `bool`: indicates if the returned artist name is formatted correctly
+    '''
+    payload = {
+        'method': 'artist.getCorrection',
+        'artist': artist
+    }
+    response = lastfm_get(payload)
+    if response is None:
+        return artist, False
+    # Now let's check if the JSON response actually contains desired fields
+    j_res = response.json()
+    if 'corrections' not in j_res or 'correction' not in j_res['corrections']:
+        return artist, False
+    # If we get here, we have a valid JSON response with desired fields
+    formatted_artist = j_res['corrections']['correction']['artist']['name']
+    return formatted_artist, True
+    
+
+# =========== [3] Fetch Song/Album Duration: ================================
     
 def fetch_song_duration(song, artist, user) -> tuple[str, str, dt_time]:
     '''
@@ -181,17 +207,17 @@ def fetch_song_duration(song, artist, user) -> tuple[str, str, dt_time]:
                 return cache_song, cache_artist, time_obj
     ''' if we get here, make an API request for a track we haven't cached '''
     j_response = fetch_song_metadata(song, artist, user)
-    if j_response:
-        duration = j_response['track']['duration']
-        # store corrected names (without any misspellings) into cache dict
-        retrieved_song = j_response['track']['name']
-        retrieved_artist = j_response['track']['artist']['name']
-        time_obj = __create_time_obj_from_milliseconds(duration)
-        # store the successful track length info into the cache
-        song_length_cache[(retrieved_song, retrieved_artist)] = time_obj
-        return retrieved_song, retrieved_artist, time_obj
-    else:
+    if j_response is None:
         return song, artist, None
+    ''' if we get here, we know we have a valid json format '''
+    duration = j_response['track']['duration']
+    # store corrected names (without any misspellings) into cache dict
+    retrieved_song = j_response['track']['name']
+    retrieved_artist = j_response['track']['artist']['name']
+    time_obj = __create_time_obj_from_milliseconds(duration)
+    # store the successful track length info into the cache
+    song_length_cache[(retrieved_song, retrieved_artist)] = time_obj
+    return retrieved_song, retrieved_artist, time_obj
     
 
 def fetch_album_duration(album, artist, user) -> tuple[str, str, dict, int]:
@@ -205,8 +231,8 @@ def fetch_album_duration(album, artist, user) -> tuple[str, str, dict, int]:
         - `int`: user's playcount for the album
     '''
     j_response = fetch_album_metadata(album, artist, user)
-    if not j_response:
-        return album, artist, None, 0  # album does not exist
+    if j_response is None:
+        return album, artist, None, 0
     ''' if we get here, we know we have a valid json format '''
     j_album = j_response['album']
     track_list = j_album['tracks']['track']  # python list
@@ -239,7 +265,7 @@ def __create_time_obj_from_milliseconds(milliseconds):
     return create_time_obj_from_seconds(total_seconds)
 
 
-# =========== [3] Fetch Song/Album Metadata: ================================
+# =========== [4] Fetch Song/Album Metadata: ================================
 
 def fetch_song_metadata(song, artist, user):
     return __fetch_metadata('track.getInfo', song, artist, user)
@@ -255,21 +281,21 @@ def __fetch_metadata(method, item, artist, user) -> json:
     currently item must either be a 'song' or 'album' name
     '''
     item_key = 'track' if method == 'track.getInfo' else 'album'
+    formatted_artist = fetch_artist_name_corrected(artist)[0]
     payload = {
         'method': method,
         item_key: item,
-        'artist': artist,
+        'artist': formatted_artist,
         'username': user,
         'autocorrect': True
     }
     response = lastfm_get(payload)
-    if not is_api_error(response) and item_key in response.json():
-        return response.json()
-    else:
+    if response is None or item_key not in response.json():
         return None
+    return response.json()
 
 
-# =========== [4] Utility: ==================================================
+# =========== [5] Utility: ==================================================
     
 def lastfm_get(payload) -> requests:
     '''
@@ -310,20 +336,15 @@ def is_valid_user(username) -> bool:
         'user': username
     }
     response = lastfm_get(payload)
-    return not is_api_error(response)
+    return False if response is None else True
 
 
 def is_api_error(response):
     '''
-    Returns a bool indicating if an API request was successful or not
+    Returns a bool indicating if the API request was successful
     '''
     SUCCESS_STATUS_CODE = 200
-    if response == None:
-        return True
-    elif response.status_code != SUCCESS_STATUS_CODE:
-        # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
-        # print(f'\tAPI Request Error: {str(response.status_code)}')
-        # print('\n~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*~*\n')
+    if response is None or response.status_code != SUCCESS_STATUS_CODE:
         return True
     return False
 
@@ -349,8 +370,8 @@ def jprint(obj):
     '''
     Create a formatted string of the Python JSON object
     '''
-    text = json.dumps(obj, sort_keys=True, indent=4)
-    print(text)
+    output = json.dumps(obj, sort_keys=True, indent=4)
+    print(output)
 
 
 if __name__ == '__main__':

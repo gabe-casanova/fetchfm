@@ -42,13 +42,9 @@ def main():
 
 def run_trackfm():
     create_database()
-    result = db.song_listening_time('Male Fantasy', 'Billie Eilish')
-    print(result)
-    print_seconds_human_readable(result[2])
-    print(f'{seconds_to_days(result[2]):.2f} days')
 
 
-# =========== [2] Miscellaneous: ============================================
+# =========== [2] Initialization: ===========================================
 
 def welcome_msg():
     global username
