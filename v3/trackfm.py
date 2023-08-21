@@ -12,21 +12,18 @@ LOGO = """
 ░░░██║░░░██║░░██║██║░░██║╚█████╔╝██║░╚██╗██╗██║░░░░░██║░╚═╝░██║
 ░░░╚═╝░░░╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝
 """
-ANSI_PRIMARY = ANSI.BRIGHT_CYAN_BOLD
-ANSI_SECONDARY = ANSI.CYAN_BOLD
 
-MAIN_MENU_CHOICES = list(MainMenuChoices)
-
-db = None  # global catalog
+db = None  # global catalog obj
 username = ''
 
 
 # =========== [1] Main Program/UI: ==========================================
 
 def main():
-    ''' Begins the text-based UI for the Trackfm program '''
+    ''' Initializes starting components for the Track.fm program '''
     welcome_msg()  # sets global username variable
     if username == '':
+        # the user has decided to default to the current user
         found, error_msg = get_default_user()
         if found:
             if is_valid_user(username):
@@ -46,50 +43,41 @@ def main():
 
 
 def run_trackfm():
+    ''' Creates the global database object and begins the text-based UI '''
+    CHOICE_FUNCTIONS = {
+        MainMenuChoices.USER_DATA: print_user_data,
+        MainMenuChoices.TIME_STATS: NotImplemented,
+        MainMenuChoices.TRACK_STATS: NotImplemented,
+        MainMenuChoices.PRINTING: NotImplemented
+    }
     create_database()
     while True:
-        print_main_menu()
+        display_main_menu()
         my_choice = get_main_menu_choice()
         if my_choice == MainMenuChoices.QUIT:
             break
-        choice_functions[my_choice]()  # call the corresponding function
-    # if we get here, the program has been terminated
-    print(f'\nThanks for using {ANSI_PRIMARY}Track.fm{ANSI.RESET}!\n')
+        CHOICE_FUNCTIONS[my_choice]()  # call corresponding function (switch)
+    # if we get here, the user has terminated the program
+    print(f'Thanks for using {ANSI.BRIGHT_CYAN_BOLD}Track.fm{ANSI.RESET}!\n')
 
 
-def get_main_menu_choice():
+def print_user_data():
     '''
-    Prompts user to enter their Main Menu choice (as an int) into the terminal
+    Prints the following user info to the terminal:
+        - MOST_STREAMED_DAY_OVERALL
+        - AVERAGE_NUM_DAILY_SCROBBLES
+        - TOTAL_NUM_SCROBBLES
+        - TOTAL_NUM_DISTINCT_DAYS
     '''
-    ansi_enter = f'{ANSI.WHITE_UNDERLINED}Enter Choice:{ANSI.RESET}'
-    while True:
-        user_input = input(f'{ansi_enter} {ANSI_SECONDARY}')
-        print(ANSI.RESET, end='')
-        if user_input.isdigit() and (1 <= user_input <= len(MAIN_MENU_CHOICES)):
-            break
-        # if we get here, the user did not type in an int
-        ansi_input = f'{ANSI_PRIMARY}{user_input}{ANSI.RESET}'
-        print(f'* Sorry, but {ansi_input} isn\'t a valid choice!\n')
-    return MAIN_MENU_CHOICES[user_input - 1]
+    print('hi')
 
 
-def print_main_menu():
-    print()
-    print(f' {ANSI.BRIGHT_BLUE_BOLD}Main Menu:{ANSI.RESET}')
-    print_menu_option(1, 'user data')
-    print_menu_option(2, 'time-based stats')
-    print_menu_option(3, 'track-based stats')
-    print_menu_option(4, 'get scrobbles')
-    print_menu_option(5, 'quit')
-    print()
-
-
-# =========== [2] Initialization: ===========================================
+# =========== [2] Miscellaneous: ============================================
 
 def welcome_msg():
     global username
-    ansi_logo = f'{ANSI_PRIMARY}{LOGO}{ANSI.RESET}'
-    ansi_lastfm = f'{ANSI_SECONDARY}Last.fm username{ANSI.RESET}'
+    ansi_logo = f'{ANSI.BRIGHT_CYAN_BOLD}{LOGO}{ANSI.RESET}'
+    ansi_lastfm = f'{ANSI.CYAN_BOLD}Last.fm username{ANSI.RESET}'
     ansi_enter = f'{ANSI.BRIGHT_WHITE_BOLD}`enter`{ANSI.RESET}'
     print(f'\n{ansi_logo}\n')
     print(f'Enter your {ansi_lastfm} or press {ansi_enter} to default to '
@@ -117,9 +105,12 @@ def get_default_user():
                     'defaulting to the current user')
         error_msg = f'\n{error_header}\n     {bullet_1}\n     {bullet_2}\n\n'
         return False, error_msg
-    
+
 
 def create_database():
+    '''
+    Creates the global catalog object ('db')
+    '''
     global db
     file_path = get_path('scrobbled_data', f'{username}.txt')
     with open(file_path, 'r') as f:
@@ -127,11 +118,42 @@ def create_database():
         db = Catalog(username, scrobbled_data)
 
 
+def display_main_menu():
+    '''
+    Prints the Main Menu choices to the terminal for the user to read
+    '''
+    print()
+    print(f' {ANSI.BRIGHT_BLUE_BOLD}Main Menu:{ANSI.RESET}')
+    print_menu_option('  ', 1, 'user data')
+    print_menu_option('  ', 2, 'time-based stats')
+    print_menu_option('  ', 3, 'track-based stats')
+    print_menu_option('  ', 4, 'get scrobbles')
+    print_menu_option('  ', 5, 'quit')
+    print()
+
+
+def print_menu_option(indent, key, msg):
+    print(f'{indent}{ANSI.BRIGHT_BLUE}{key}{ANSI.RESET} ⇒ {msg}')
+
+
+def get_main_menu_choice():
+    '''
+    Retrieves the user's Main Menu choice (as an int) from the terminal
+    '''
+    MENU_CHOICES = list(MainMenuChoices)
+    ansi_enter = f' {ANSI.BRIGHT_BLUE_BOLD}Enter Choice:{ANSI.RESET} '
+    while True:
+        user_input = input(f'{ansi_enter}')
+        if user_input.isdigit() and 1 <= int(user_input) <= len(MENU_CHOICES):
+            print()
+            break
+        # if we get here, the user did not type in an int. display message
+        ansi_input = f'{ANSI.BRIGHT_CYAN_BOLD}{user_input}{ANSI.RESET}'
+        print(f'\n  * {ansi_input} isn\'t a valid choice\n')
+    return MENU_CHOICES[int(user_input) - 1]
+
+
 # =========== [3] Utility: ==================================================
-
-def print_menu_option(key, msg):
-    print(f'  {ANSI.BRIGHT_BLUE}{key}{ANSI.RESET} ⇒ {msg}')
-
 
 def print_seconds_human_readable(total_seconds):
     hours, remainder = divmod(total_seconds, 3600)
