@@ -352,18 +352,18 @@ def is_api_error(response):
 def print_bytey():
     '''
     Prints Bytey the ascii-dog to the terminal
-       ,'.-.'. 
-       '\~ o/` ,,
-        { @ } f
-        /`-'\$ 
-       (_/-\_) 
+    _     /)---(\
+    \\   (/ . . \)
+     \\__)-\(*)/
+     \_       (_
+     (___/-(____)
     Credit: https://www.asciiart.eu/animals/dogs
     '''
-    print('\n,\'.-.\'.')
-    print('\'\\~ o/` ,,')
-    print(' { @ } f')
-    print(' /`-\'\\$')
-    print('(_/-\\_) \n')
+    print('\n_     /)---(\\   ')
+    print('\\\\   (/ . . \\)  ')
+    print(' \\\\__)-\\(*)/    ')
+    print(' \\_       (_    ')
+    print(' (___/-(____)  \n')
 
 
 def jprint(obj):
