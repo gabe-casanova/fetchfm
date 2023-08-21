@@ -1,6 +1,7 @@
 from ansi import ANSI
 from catalog import Catalog
 from api_handler import get_path, fetch_scrobbled_data, is_valid_user
+from menu_choices import MainMenuChoices
 
 # Credit: https://fsymbols.com/text-art/
 LOGO = """
@@ -11,6 +12,10 @@ LOGO = """
 ░░░██║░░░██║░░██║██║░░██║╚█████╔╝██║░╚██╗██╗██║░░░░░██║░╚═╝░██║
 ░░░╚═╝░░░╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝
 """
+ANSI_PRIMARY = ANSI.BRIGHT_CYAN_BOLD
+ANSI_SECONDARY = ANSI.CYAN_BOLD
+
+MAIN_MENU_CHOICES = list(MainMenuChoices)
 
 db = None  # global catalog
 username = ''
@@ -42,14 +47,49 @@ def main():
 
 def run_trackfm():
     create_database()
+    while True:
+        print_main_menu()
+        my_choice = get_main_menu_choice()
+        if my_choice == MainMenuChoices.QUIT:
+            break
+        choice_functions[my_choice]()  # call the corresponding function
+    # if we get here, the program has been terminated
+    print(f'\nThanks for using {ANSI_PRIMARY}Track.fm{ANSI.RESET}!\n')
+
+
+def get_main_menu_choice():
+    '''
+    Prompts user to enter their Main Menu choice (as an int) into the terminal
+    '''
+    ansi_enter = f'{ANSI.WHITE_UNDERLINED}Enter Choice:{ANSI.RESET}'
+    while True:
+        user_input = input(f'{ansi_enter} {ANSI_SECONDARY}')
+        print(ANSI.RESET, end='')
+        if user_input.isdigit() and (1 <= user_input <= len(MAIN_MENU_CHOICES)):
+            break
+        # if we get here, the user did not type in an int
+        ansi_input = f'{ANSI_PRIMARY}{user_input}{ANSI.RESET}'
+        print(f'* Sorry, but {ansi_input} isn\'t a valid choice!\n')
+    return MAIN_MENU_CHOICES[user_input - 1]
+
+
+def print_main_menu():
+    print()
+    print(f' {ANSI.BRIGHT_BLUE_BOLD}Main Menu:{ANSI.RESET}')
+    print_menu_option(1, 'user data')
+    print_menu_option(2, 'time-based stats')
+    print_menu_option(3, 'track-based stats')
+    print_menu_option(4, 'get scrobbles')
+    print_menu_option(5, 'quit')
+    print()
 
 
 # =========== [2] Initialization: ===========================================
 
 def welcome_msg():
     global username
-    ansi_logo = f'{ANSI.BRIGHT_CYAN_BOLD}{LOGO}{ANSI.RESET}'
-    ansi_lastfm = f'{ANSI.CYAN_BOLD}Last.fm username{ANSI.RESET}'
+    ansi_logo = f'{ANSI_PRIMARY}{LOGO}{ANSI.RESET}'
+    ansi_lastfm = f'{ANSI_SECONDARY}Last.fm username{ANSI.RESET}'
     ansi_enter = f'{ANSI.BRIGHT_WHITE_BOLD}`enter`{ANSI.RESET}'
     print(f'\n{ansi_logo}\n')
     print(f'Enter your {ansi_lastfm} or press {ansi_enter} to default to '
@@ -58,7 +98,7 @@ def welcome_msg():
     print(ANSI.RESET, end='')
 
 
-def get_default_user() -> tuple[bool, str]:
+def get_default_user():
     '''
     Returns a bool indicating if the current_user.txt file was successfully
     located. If unsuccessful, the str will contain the error message to print
@@ -88,6 +128,10 @@ def create_database():
 
 
 # =========== [3] Utility: ==================================================
+
+def print_menu_option(key, msg):
+    print(f'  {ANSI.BRIGHT_BLUE}{key}{ANSI.RESET} ⇒ {msg}')
+
 
 def print_seconds_human_readable(total_seconds):
     hours, remainder = divmod(total_seconds, 3600)
