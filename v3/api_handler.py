@@ -41,7 +41,7 @@ def fetch_scrobbled_data(username) -> bool:
 def init_user_info_file(username):
     '''
     Uses the contents of the user.getInfo API request to write to a text file 
-    to be used later on during the Trackfm program
+    to be used later on during the fetchfm program
     '''
     LABELS = ['age', 'album_count', 'artist_count', 'country', 'gender', 
               'playcount', 'playlists', 'realname', 'subscriber',
@@ -375,7 +375,7 @@ def jprint(obj):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'fetch':
+    if len(sys.argv) > 1 and sys.argv[1] == 'getdata':
         # only run fetch_scrobbled_data() if explicitly asked to
         _ = fetch_scrobbled_data('')
     

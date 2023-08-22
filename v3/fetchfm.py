@@ -4,14 +4,15 @@ from catalog import Catalog
 from api_handler import get_path, fetch_scrobbled_data, is_valid_user
 from menu_choices import MainMenuChoices
 
-# Credit: https://fsymbols.com/text-art/
+# TODO-- when requesting data for Last.fm user "make" it causes a DivideByZero Error in print_user_info()
+
 LOGO = """
-████████╗██████╗░░█████╗░░█████╗░██╗░░██╗░░░███████╗███╗░░░███╗
-╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██║░██╔╝░░░██╔════╝████╗░████║
-░░░██║░░░██████╔╝███████║██║░░╚═╝█████═╝░░░░█████╗░░██╔████╔██║
-░░░██║░░░██╔══██╗██╔══██║██║░░██╗██╔═██╗░░░░██╔══╝░░██║╚██╔╝██║
-░░░██║░░░██║░░██║██║░░██║╚█████╔╝██║░╚██╗██╗██║░░░░░██║░╚═╝░██║
-░░░╚═╝░░░╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝
+      ███████╗███████╗████████╗░█████╗░██╗░░██╗░░░███████╗███╗░░░███╗  _ ♪   /)---(\\
+      ██╔════╝██╔════╝╚══██╔══╝██╔══██╗██║░░██║░░░██╔════╝████╗░████║  \\\\ ♪ (/ . . \\)
+      █████╗░░█████╗░░░░░██║░░░██║░░╚═╝███████║░░░█████╗░░██╔████╔██║ ♪ \\\\__)-\\(*)/
+      ██╔══╝░░██╔══╝░░░░░██║░░░██║░░██╗██╔══██║░░░██╔══╝░░██║╚██╔╝██║   \\_       (_
+      ██║░░░░░███████╗░░░██║░░░╚█████╔╝██║░░██║██╗██║░░░░░██║░╚═╝░██║   (___/-(____)
+^^^^^^╚═╝░░░░░╚══════╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝^^^^^^^^^^^^^^^^^
 """
 
 db = None  # global catalog obj
@@ -21,14 +22,13 @@ username = ''
 # =========== [1] Main Program: =============================================
 
 def main():
-    ''' Initializes starting components for the Track.fm program '''
-    welcome_msg()  # sets global username variable
+    prompt_for_username()  # sets global username variable
     if username == '':
         # the user has decided to default to the current user
         found, error_msg = get_default_user()
         if found:
             if is_valid_user(username):
-                run_trackfm()
+                run_fetchfm()
             else:
                 ansi_user = f'{ANSI.BRIGHT_RED}{username}{ANSI.RESET}'
                 msg = (f' * Sorry, but it seems the default user, {ansi_user},'
@@ -40,18 +40,19 @@ def main():
         # begin the process of fetching user's scrobbled data
         success = fetch_scrobbled_data(username)
         if success:
-            run_trackfm()
+            run_fetchfm()
 
 
-def run_trackfm():
-    ''' Creates the global database object and begins the UI '''
+def run_fetchfm():
+    create_database()
+    ''' dictionary mapping menu choices to corresponding helper functions '''
     CHOICE_FUNCTIONS = {
         MainMenuChoices.USER_INFO: print_user_info,
         MainMenuChoices.TIME_STATS: NotImplemented,
         MainMenuChoices.TRACK_STATS: NotImplemented,
         MainMenuChoices.PRINTING: NotImplemented
     }
-    create_database()
+    print_bytey_welcome_msg()
     while True:
         display_main_menu()
         my_choice = get_main_menu_choice()
@@ -59,7 +60,7 @@ def run_trackfm():
             break
         CHOICE_FUNCTIONS[my_choice]()  # call corresponding function (switch)
     # if we get here, the user has terminated the program
-    print(f'Thanks for using {ANSI.BRIGHT_CYAN_BOLD}Track.fm{ANSI.RESET} ^.^\n')
+    print(f'Thanks for using {ANSI.BRIGHT_CYAN_BOLD}Fetch.fm{ANSI.RESET}!\n')
 
 
 def print_user_info():
@@ -72,6 +73,7 @@ def print_user_info():
     result = read_user_info_txt_file()
     if result is None:
         # TODO
+        print('uh oh')
         return
     realname, playcount, track_count, album_count, artist_count = result
     user = realname if realname is not None else username
@@ -86,9 +88,9 @@ def print_user_info():
     ansi_daily_average = ansi_commas(daily_average)
     ansi_num_days = ansi_commas(total_num_days)
     ''' Get Bytey the ASCII dog broken up into its individual lines '''
-    BYTEY = get_bytey_ansi_parts()
+    BYTEY = get_bytey_ansi_parts(ANSI.BRIGHT_CYAN_BOLD, True)
     # print the message to the screen
-    print(BYTEY[0])
+    print(f'\n{BYTEY[0]}')
     print(f'{BYTEY[1]}Hey there, {ansi_user}! Here are some fun music stats I '
           'dug up about you--')
     print(f'{BYTEY[2]} ⇒ you\'ve listened to {ansi_playcount} tracks over the '
@@ -99,26 +101,26 @@ def print_user_info():
           f'{ansi_artist_count} diverse artists')
     if num_streams == 0:
         # edge case
-        print(BYTEY[4])
+        print(f'{BYTEY[4]}\n')
         return
     # if we get here, we know most_streamed_days list is NOT empty
     formatted_date = most_streamed_days[0].strftime('%B %d, %Y')
     ansi_date = f'{ANSI.CYAN_BOLD}{formatted_date}{ANSI.RESET}'
     ansi_num_streams = ansi_commas(num_streams)
     print(f'{BYTEY[4]} ⇒ on {ansi_date} you listened to a lot of music, with '
-          f'{ansi_num_streams} total songs played (..the most of any day!)')
+          f'{ansi_num_streams} total songs played (..the most of any day!)\n')
     
 
 # =========== [2] Miscellaneous: ============================================
 
-def welcome_msg():
+def prompt_for_username():
     global username
     ansi_logo = f'{ANSI.BRIGHT_CYAN_BOLD}{LOGO}{ANSI.RESET}'
     ansi_lastfm = f'{ANSI.CYAN_BOLD}Last.fm username{ANSI.RESET}'
     ansi_enter = f'{ANSI.BRIGHT_WHITE_BOLD}`enter`{ANSI.RESET}'
     print(f'\n{ansi_logo}\n')
     print(f'Enter your {ansi_lastfm} or press {ansi_enter} to default to '
-          f'the current user: {ANSI.BRIGHT_BLUE}', end='')
+          f'the current user: {ANSI.BRIGHT_GREEN}', end='')
     username = input()
     print(ANSI.RESET, end='')
 
@@ -137,7 +139,7 @@ def get_default_user():
     except (FileNotFoundError, OSError):
         error_header = ' * ERROR: Default failed'
         bullet_1 = ('-> Please ensure you\'ve ran `python api_handler.py '
-                    'fetch` before you attempt to run `python trackfm.py`')
+                    'getdata` before you attempt to run `python fetchfm.py`')
         bullet_2 = ('-> Or, please enter your Last.fm username instead of '
                     'defaulting to the current user')
         error_msg = f'\n{error_header}\n     {bullet_1}\n     {bullet_2}\n\n'
@@ -153,41 +155,6 @@ def create_database():
     with open(file_path, 'r') as f:
         scrobbled_data = f.readlines()
         db = Catalog(username, scrobbled_data)
-
-
-def display_main_menu():
-    '''
-    Prints the Main Menu choices to the terminal for the user to read
-    '''
-    print()
-    print(f' {ANSI.BRIGHT_BLUE_BOLD}Main Menu:{ANSI.RESET}')
-    print_menu_choice('  ', 1, 'Bytey\'s fun facts :3')
-    print_menu_choice('  ', 2, 'explore your timing data')
-    print_menu_choice('  ', 3, 'explore track-based stats')
-    print_menu_choice('  ', 4, 'delve into your scrobbles')
-    print_menu_choice('  ', 5, 'quit program')
-    print()
-
-
-def print_menu_choice(indent, key, msg):
-    print(f'{indent}Opt {ANSI.BRIGHT_BLUE}{key}{ANSI.RESET} ⇒ {msg}')
-
-
-def get_main_menu_choice():
-    '''
-    Retrieves the user's Main Menu choice (as an int) from the terminal
-    '''
-    MENU_CHOICES = list(MainMenuChoices)
-    ansi_enter = f' {ANSI.BRIGHT_BLUE_BOLD}Enter Option #:{ANSI.RESET} '
-    while True:
-        user_input = input(f'{ansi_enter}')
-        if user_input.isdigit() and 1 <= int(user_input) <= len(MENU_CHOICES):
-            print()
-            break
-        # if we get here, the user did not type in an int. display message
-        ansi_input = f'{ANSI.BRIGHT_CYAN_BOLD}{user_input}{ANSI.RESET}'
-        print(f'\n  * {ansi_input} isn\'t a valid choice\n')
-    return MENU_CHOICES[int(user_input) - 1]
 
 
 def read_user_info_txt_file():
@@ -228,6 +195,45 @@ def read_user_info_txt_file():
         return None
 
 
+def get_main_menu_choice():
+    '''
+    Retrieves the user's Main Menu choice (as an int) from the terminal
+    '''
+    # TODO-- bug can't rerun option 1
+    MENU_CHOICES = list(MainMenuChoices)
+    ansi_enter = f' {ANSI.BRIGHT_GREEN_BOLD}Enter Option #:{ANSI.RESET} '
+    while True:
+        user_input = input(f'{ansi_enter}')
+        if user_input.isdigit() and 1 <= int(user_input) <= len(MENU_CHOICES):
+            print()
+            break
+        # if we get here, the user did not type in an int. display message
+        ansi_input = f'{ANSI.BRIGHT_CYAN_BOLD}{user_input}{ANSI.RESET}'
+        print(f'\n  * {ansi_input} isn\'t a valid choice\n')
+    return MENU_CHOICES[int(user_input) - 1]
+
+
+def print_bytey_welcome_msg():
+    BYTEY = get_bytey_ansi_parts(ANSI.BRIGHT_CYAN_BOLD, False)
+    msg = f"""
+  /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
+ |                               Welcome to Fetch.fm!                                   |
+ |                                                                                      |
+ |   My name's Bytetholomew the Dog, but you can just call me `Fetch` for short! I'm    |
+ | sorta the top dog over at Fetch.fm HQ, but I thought I'd tag along with you for now. |
+ |                                                                                      |
+ |    Please select one of the following menu options to get started using Fetch.fm!    |
+  \\___________________________________________   ______________________________________/
+                                              | /
+                                {BYTEY[0]} |/
+                                {BYTEY[1]}
+                                {BYTEY[2]}
+                                {BYTEY[3]}
+                                {BYTEY[4]}
+"""
+    print(f'\n{msg}', end='')
+
+
 # =========== [3] Utility: ==================================================
 
 def print_seconds_human_readable(total_seconds):
@@ -242,6 +248,24 @@ def seconds_to_days(total_seconds):
     return num_days
 
 
+def display_main_menu():
+    '''
+    Prints the Main Menu choices to the terminal for the user to read
+    '''
+    print()
+    print(f' {ANSI.BRIGHT_GREEN_BOLD}Main Menu:{ANSI.RESET}')
+    print_menu_choice('  ', 1, 'Fetch\'s fun facts ♪♪♪')
+    print_menu_choice('  ', 2, 'timing data')
+    print_menu_choice('  ', 3, 'track-based stats')
+    print_menu_choice('  ', 4, 'delve into your scrobbles')
+    print_menu_choice('  ', 5, 'quit program')
+    print()
+
+
+def print_menu_choice(indent, key, msg):
+    print(f'{indent}‣ {ANSI.BRIGHT_GREEN}{key}{ANSI.RESET}  {msg}')
+
+
 def ansi_commas(num):
     '''
     Formats the given number with commas and displays it in ANSI
@@ -249,14 +273,21 @@ def ansi_commas(num):
     return f'{ANSI.CYAN_BOLD}{format(num, ",")}{ANSI.RESET}'
 
 
-def get_bytey_ansi_parts() -> list:
-    BYTEY_1 = '_     /)---(\\   '
-    BYTEY_2 = '\\\\   (/ . . \\)  '
-    BYTEY_3 = ' \\\\__)-\\(*)/    '
-    BYTEY_4 = ' \\_       (_    '
-    BYTEY_5 = ' (___/-(____)   '
+def get_bytey_ansi_parts(ansi, trailing_aligned:bool) -> list:
+    if trailing_aligned:
+        BYTEY_1 = '_     /)---(\\   '
+        BYTEY_2 = '\\\\   (/ . . \\)  '
+        BYTEY_3 = ' \\\\__)-\\(*)/    '
+        BYTEY_4 = ' \\_       (_    '
+        BYTEY_5 = ' (___/-(____)   '
+    else:
+        BYTEY_1 = '_     /)---(\\'
+        BYTEY_2 = '\\\\   (/ . . \\)'
+        BYTEY_3 = ' \\\\__)-\\(*)/'
+        BYTEY_4 = ' \\_       (_'
+        BYTEY_5 = ' (___/-(____)'
     temp_list = [BYTEY_1, BYTEY_2, BYTEY_3, BYTEY_4, BYTEY_5]
-    ansi_bytey = [f'{ANSI.WHITE_BOLD}{line}{ANSI.RESET}' for line in temp_list]
+    ansi_bytey = [f'{ansi}{line}{ANSI.RESET}' for line in temp_list]
     return ansi_bytey
 
 
