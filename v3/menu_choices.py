@@ -1,15 +1,13 @@
 from enum import Enum
 
 class MainMenuChoices(Enum):
-    USER_INFO = 1
-    TIME_STATS = 2
+    FUN_FACTS = 1
+    TIMING_DATA = 2
     TRACK_STATS = 3
-    PRINTING = 4
+    SCROBBLES = 4
     QUIT = 5
 
     '''
-        1. USER_INFO
-    
         2. TIME_BASED_STATS
             > SONG_LENGTH
             > LISTENING_TIME
@@ -28,6 +26,4 @@ class MainMenuChoices(Enum):
             > PRINT_SCROBBLES_ON_DATE
             > PRINT_FULL_CHROLOGICAL
             > PRINT_ALPHABETIZED_SUMMARIES
-
-        5. QUIT_PROGRAM
     '''

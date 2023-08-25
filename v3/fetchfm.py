@@ -12,7 +12,7 @@ LOGO = """
       █████╗░░█████╗░░░░░██║░░░██║░░╚═╝███████║░░░█████╗░░██╔████╔██║ ♪ \\\\__)-\\(*)/
       ██╔══╝░░██╔══╝░░░░░██║░░░██║░░██╗██╔══██║░░░██╔══╝░░██║╚██╔╝██║   \\_       (_
       ██║░░░░░███████╗░░░██║░░░╚█████╔╝██║░░██║██╗██║░░░░░██║░╚═╝░██║   (___/-(____)
-^^^^^^╚═╝░░░░░╚══════╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝^^^^^^^^^^^^^^^^^
+^^^^^^╚═╝░░░░░╚══════╝░░░╚═╝░░░░╚════╝░╚═╝░░╚═╝╚═╝╚═╝░░░░░╚═╝░░░░░╚═╝^^^^^^^^^^^^^^^^^ \
 """
 
 USERNAME = ''
@@ -26,6 +26,7 @@ has_previous_user = False
 def main():
     display_logo()
     check_for_prev_user()  # sets the `has_previous_user` global variable
+    print()
     username = get_username()
     if username.lower() == 'q':
         bytey_goodbye_msg()
@@ -92,20 +93,20 @@ def check_lastfm_user(username):
     '''
     global USERNAME
     while username.isspace() or not is_valid_user(username):
-        ANSI_USERNAME = ANSI.CYAN_BOLD + username + ANSI.RESET
-        print(f'\n * Sorry, but {ANSI_USERNAME} is not a valid Last.fm username')
+        ANSI_USER = ANSI.CYAN_BOLD + username + ANSI.RESET
+        print(f'\n * Sorry, but {ANSI_USER} is not a valid Last.fm username')
         username = get_username()
         if username.lower() == 'q' or (username == '' and has_previous_user):
             break
     # If we get here, the user has either entered a valid username, wishes to
-    # us the previous user, or would like to quit out of the program
+    # us the previous user (if available), or would like to quit the program
     if username.lower() == 'q':
         bytey_goodbye_msg()
     elif username == '' and has_previous_user:
         USERNAME = prev_user
         run_user_interface()
     else:
-        # verify that the user wishes to proceed with this username (ie. typos)
+        # verify w user that there's no typos in the provided VALID username
         ANSI_USER = ANSI.CYAN_BOLD + username + ANSI.RESET
         ANSI_Y = ANSI.CYAN_BOLD + '`y`' + ANSI.RESET
         ANSI_ENTER = ANSI.CYAN_BOLD + '`enter`' + ANSI.RESET
@@ -123,6 +124,7 @@ def check_lastfm_user(username):
             print(ANSI.RESET, end='')  # reset ansi back to default
             check_lastfm_user(user_input)
         else:
+            # the user would like to proceed with the current username
             USERNAME = username
             fetch_scrobbled_data(username)
             run_user_interface()
@@ -144,10 +146,10 @@ def run_user_interface():
     Manages the Fetch.fm UI
     '''
     MENU_FUNCTIONS = {
-        MainMenuChoices.USER_INFO: print_fun_facts,
-        MainMenuChoices.TIME_STATS: NotImplemented,
+        MainMenuChoices.FUN_FACTS: option_1,
+        MainMenuChoices.TIMING_DATA: option_2,
         MainMenuChoices.TRACK_STATS: NotImplemented,
-        MainMenuChoices.PRINTING: NotImplemented
+        MainMenuChoices.SCROBBLES: NotImplemented
     }
     create_database()
     bytey_welcome_msg()
@@ -161,54 +163,92 @@ def run_user_interface():
     bytey_goodbye_msg()
 
 
-def print_fun_facts():
+def option_2():
     '''
-    Prints Bytey's fun facts (i.e. user info) to the terminal
+    Provides the user the oppurtunity to query their timing data
     '''
-    total_num_days = CATALOG.get_total_num_distinct_days()
-    most_streamed_days, num_streams = CATALOG.most_streamed_day_overall()
-    # read in info from the user's user_info.txt file
-    result = read_user_info_txt_file()
-    if result is None:
-        # TODO
+    # TODO--
+    pass
+
+
+def option_1():
+    '''
+    Reads in user_info.txt data and prints the result/fun facts to the screen
+    '''
+    res = read_user_info_txt_file()
+    if res is None:
         print('  * Hmm... Fetch seems to have gotten lost. Try again soon!')
         return
-    realname, playcount, track_count, album_count, artist_count = result
-    user = realname if realname is not None else USERNAME
-    # format the output with ANSI and commas
-    ansi_user = f'{ANSI.CYAN_BOLD}{user}{ANSI.RESET}'
-    ansi_playcount = ansi_with_commas(playcount)
-    ansi_track_count = ansi_with_commas(track_count)
-    ansi_album_count = ansi_with_commas(album_count)
-    ansi_artist_count = ansi_with_commas(artist_count)
-    # calculate daily average and format w ANSI
-    daily_avg = round(playcount / total_num_days) if total_num_days != 0 else 0
-    ansi_daily_average = ansi_with_commas(daily_avg)
-    ansi_num_days = ansi_with_commas(total_num_days)
-    ''' Get Bytey the ASCII dog broken up into its individual lines '''
+    # `res` -> (realname, playcount, track_count, album_count, artist_count)
+    total_n_days = CATALOG.get_total_num_distinct_days()
+    most_streamed_days, num_streams = CATALOG.most_streamed_day_overall()
+    daily_avg = round(res[1] / total_n_days) if total_n_days != 0 else 0
+    ''' Generate ANSI symbols (i.e. Bytey list, arrows) '''
     BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, True)
-    # print the message to the screen
-    print('____________________________')
-    print(f'\n   {BYTEY[0]}')
-    print(f'   {BYTEY[1]}Hey there, {ansi_user}! Here are some fun music stats I '
-          'dug up about you--')
-    print(f'   {BYTEY[2]} ⇒ you\'ve listened to {ansi_playcount} tracks over the '
-          f'past {ansi_num_days} days, averaging {ansi_daily_average} tracks '
-          'listened a day')
-    print(f'   {BYTEY[3]} ⇒ you\'ve enjoyed {ansi_track_count} unique songs, '
-          f'explored {ansi_album_count} different albums, and discovered '
-          f'{ansi_artist_count} diverse artists')
-    if num_streams == 0:
-        # edge case
-        print(f'   {BYTEY[4]}\n')
+    ARROWS = [
+        ANSI.GREEN + '⇒' + ANSI.RESET,
+        ANSI.BLUE + '⇒' + ANSI.RESET,
+        ANSI.BRIGHT_PURPLE + '⇒' + ANSI.RESET
+    ]
+    ''' Now, format the user info using ANSI and commas (if numeric). When
+        completed, `ansi` will be a tuple of the structure:
+            -> (realname, playcount, track_count, album_count, artist_count,
+                daily_avg, total_n_days, num_streams)
+    '''
+    ansi = get_opt1_ansi_tuple(res[0], res[1], res[2], res[3], res[4],
+                               daily_avg, total_n_days, num_streams)
+    # Time to print to the screen
+    print_fun_facts(BYTEY, ARROWS, ansi, num_streams, most_streamed_days)
+
+
+def get_opt1_ansi_tuple(realname, playcount, track_count, album_count, 
+                        artist_count, daily_avg, total_n_days, num_streams):
+    '''
+    Returns a tuple containing the following information formatted with ANSI 
+    and commas (if it's a numeric value):
+        * realname
+        * playcount
+        * track_count
+        * album_count
+        * artist_count
+        * daily_avg
+        * total_n_days
+        * num_streams
+    '''
+    ansi_name = f'{ANSI.CYAN_BOLD}{realname}{ANSI.RESET}'
+    ansi_playcount = ansi_with_commas(playcount)
+    ansi_n_tracks = ansi_with_commas(track_count)
+    ansi_n_albums = ansi_with_commas(album_count)
+    ansi_n_artists = ansi_with_commas(artist_count)
+    ansi_avg = ansi_with_commas(daily_avg)
+    ansi_n_days = ansi_with_commas(total_n_days)
+    ansi_n_streams = ansi_with_commas(num_streams)
+    return (ansi_name, ansi_playcount, ansi_n_tracks, ansi_n_albums, 
+            ansi_n_artists, ansi_avg, ansi_n_days, ansi_n_streams)
+
+
+def print_fun_facts(BYTEY, ARROWS, ansi, n_streams, most_streamed_days):
+    if n_streams == 0:
+        bytey_4 = f'{BYTEY[4]}'
     else:
-        # if we get here, we know most_streamed_days list is NOT empty
-        formatted_date = most_streamed_days[0].strftime('%B %d, %Y')
-        ansi_date = f'{ANSI.CYAN_BOLD}{formatted_date}{ANSI.RESET}'
-        ansi_num_streams = ansi_with_commas(num_streams)
-        print(f'   {BYTEY[4]} ⇒ on {ansi_date} you listened to a lot of music, with '
-              f'{ansi_num_streams} total songs played (..the most for any day!)\n')
-    print('‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾')
+        # expected behavior
+        f_date = most_streamed_days[0].strftime('%B %d, %Y')  # TODO
+        ansi_date = f'{ANSI.CYAN_BOLD}{f_date}{ANSI.RESET}'
+        bytey_4 = (f'{BYTEY[4]} {ARROWS[2]} you listened to the most music on '
+                   f'{ansi_date}, with {ansi[7]} total songs played!')
+    # Construct the message
+    ANSI_GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
+    msg = f"""\
+   {BYTEY[0]}
+   {BYTEY[1]}Hey there, {ansi[0]}! Here are some fun music stats I dug up about you--
+   {BYTEY[2]} {ARROWS[0]} you've listened to {ansi[1]} tracks over the past {ansi[6]} days, \
+averaging {ansi[5]} tracks listened a day
+   {BYTEY[3]} {ARROWS[1]} you\'ve enjoyed {ansi[2]} unique songs, explored {ansi[3]} \
+different albums, and discovered {ansi[4]} diverse artists
+   {bytey_4}
+  {ANSI_GRASS} \
+"""
+    print(msg)
     
 
 # =========== [2] Utility: ==================================================
@@ -217,10 +257,11 @@ def display_main_menu():
     '''
     Prints the Main Menu choices to the terminal for the user to read
     '''
+    ANSI_MUSIC = f'{ANSI.GREEN}♪{ANSI.BLUE}♪{ANSI.BRIGHT_PURPLE}♪{ANSI.RESET}'
     print(f'\n {ANSI.BRIGHT_CYAN_BOLD}Main Menu:{ANSI.RESET}')
-    print_choice(1, 'Fetch\'s fun facts for you ♪♪♪')
+    print_choice(1, f'fun facts for {USERNAME} {ANSI_MUSIC}')
     print_choice(2, 'explore your timing data')
-    print_choice(3, 'explore your track-based stats')
+    print_choice(3, 'explore your track stats')
     print_choice(4, 'delve into your scrobbles')
     print_choice(5, 'quit program\n')
 
@@ -252,7 +293,7 @@ def read_user_info_txt_file():
     '''
     Extracts information from the user's user_info.txt file. If the file does 
     not exist, return None; else, the returned tuple will include:
-        - `str`: realname
+        - `str`: realname (defaults to USERNAME if realname not present)
         - `int`: playcount
         - `int`: track_count
         - `int`: album_count
@@ -280,6 +321,9 @@ def read_user_info_txt_file():
                 user_info_dict[key] = int(user_info_dict[key])
         # return only select fields from the user info dictionary
         desired_keys = ['realname'] + numeric_keys
+        # verify that the realname field is not None, if so default to USERNAME
+        realname = user_info_dict['realname']
+        user_info_dict['realname'] = USERNAME if realname is None else realname
         result = tuple(user_info_dict.get(key) for key in desired_keys)
         return result
     else:
@@ -288,6 +332,7 @@ def read_user_info_txt_file():
 
 def bytey_welcome_msg():
     BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
+    GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
     msg = f"""
   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
  |                              Welcome to Fetch.fm!                                  |
@@ -303,8 +348,9 @@ def bytey_welcome_msg():
                                {BYTEY[2]}
                                {BYTEY[3]}
                                {BYTEY[4]}
+                              {GRASS}
 """
-    print_text_animated(f'\n{msg}', 0.25)
+    print_text_animated(f'\n{msg}', 0)
 
 
 def bytey_goodbye_msg():
@@ -320,9 +366,7 @@ def bytey_goodbye_msg():
                          {BYTEY[3]}
                          {BYTEY[4]}
 """
-    print_text_animated(f'{msg}', 0.25)
-    print()
-    print()
+    print_text_animated(f'{msg}\n', 0)
 
 
 def print_text_animated(text, end_delay_in_secs):
