@@ -16,7 +16,7 @@ song_length_cache = {}
 
 # =========== [1] Fetch Scrobbled Data: =====================================
 
-def fetch_scrobbled_data(username) -> bool:
+def fetch_scrobbled_data(username):
     '''
     Begins the process of fetching all of the user's scrobbled data and saving
     it in a seperate text file stored at /scrobbled_data/{username}.txt
@@ -28,7 +28,7 @@ def fetch_scrobbled_data(username) -> bool:
         # error check to ensure the username is a valid Last.fm user
         init_user_info_file(username)
         get_recent_tracks(username)
-        print_bytey()
+        print('yay')
         return True
     else:
         ansi_user = f'{ANSI.BRIGHT_RED}{username}{ANSI.RESET}'
@@ -51,8 +51,6 @@ def init_user_info_file(username):
         'user': username
     })
     if response is None:
-        print(' * ERROR: unable to initialize the user_info.txt file due to '
-              'an API request issue')
         return  # early return
     # if we get here, we know the API request was successful
     j_user = response.json()['user']
@@ -115,10 +113,14 @@ def get_recent_tracks(username):
 
 
 def __get_username():
-    print('\nWhat is your Last.fm username? ' + ANSI.YELLOW, end='')
-    username = input()
-    print(ANSI.RESET, end='')
-    return username
+    ANSI_USER = ANSI.CYAN_BOLD + 'username' + ANSI.RESET
+    ANSI_Q = ANSI.CYAN_BOLD + '`q`' + ANSI.RESET
+    prompt = f'\Enter your Last.fm {ANSI_USER}; to exit, type {ANSI_Q}: '
+    print()
+    print(prompt + ANSI.CYAN, end='')
+    user_input = input()
+    print(ANSI.RESET, end='')  # resets ansi back to default
+    return user_input
 
 
 def __write_scrobbles_to_file(j_recenttracks, username):
@@ -349,21 +351,24 @@ def is_api_error(response):
     return False
 
 
-def print_bytey():
+def get_ansi_bytey(ansi, aligned) -> list:
     '''
-    Prints Bytey the ascii-dog to the terminal
-    _     /)---(\
-    \\   (/ . . \)
-     \\__)-\(*)/
-     \_       (_
-     (___/-(____)
-    Credit: https://www.asciiart.eu/animals/dogs
+    Returns a list in which each element is a particular line of ansi Bytey
     '''
-    print('\n_     /)---(\\   ')
-    print('\\\\   (/ . . \\)  ')
-    print(' \\\\__)-\\(*)/    ')
-    print(' \\_       (_    ')
-    print(' (___/-(____)  \n')
+    if aligned:
+        alignment = ['   ', '  ', '    ', '    ', '   ']
+    else:
+        alignment = ['', '', '', '', '']
+    # construct bytey now
+    BYTEY = [
+        '_     /)---(\\' + alignment[0],
+        '\\\\   (/ . . \\)' + alignment[1],
+        ' \\\\__)-\\(*)/' + alignment[2],
+        ' \\_       (_' + alignment[3],
+        ' (___/-(____)' + alignment[4]
+    ]
+    ansi_bytey = [f'{ansi}{line}{ANSI.RESET}' for line in BYTEY]
+    return ansi_bytey
 
 
 def jprint(obj):
@@ -377,5 +382,5 @@ def jprint(obj):
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'getdata':
         # only run fetch_scrobbled_data() if explicitly asked to
-        _ = fetch_scrobbled_data('')
+        fetch_scrobbled_data('')
     
