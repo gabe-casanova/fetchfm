@@ -18,24 +18,27 @@ song_length_cache = {}
 
 def fetch_scrobbled_data(username):
     '''
-    Begins the process of fetching all of the user's scrobbled data and saving
-    it in a seperate text file stored at /scrobbled_data/{username}.txt
+    Handles the process of fetching all of the user's scrobbled data and 
+    storing it in a seperate text file stored at /scrobbled_data/{username}.txt
     '''
     if username == '':
-        # only prompt the user for their username if we weren't provided one
+        # we only get here when doing the explicit `getdata` command while 
+        # running api_handler.py (we must prompt the user for their Last.fm 
+        # as since we aren't passed one in)
         username = __get_username()
-    if is_valid_user(username):
-        # error check to ensure the username is a valid Last.fm user
-        init_user_info_file(username)
-        get_recent_tracks(username)
-        print('yay')
-        return True
-    else:
-        ansi_user = f'{ANSI.BRIGHT_RED}{username}{ANSI.RESET}'
-        msg = (f'\n * Sorry, but it seems {ansi_user} is not a valid Last.fm '
-               'user!\n')
-        print(msg)
-        return False
+        while username.isspace() or not is_valid_user(username):
+            ANSI_USERNAME = ANSI.CYAN_BOLD + username + ANSI.RESET
+            print(f'\n * Sorry, but {ANSI_USERNAME} is not a valid Last.fm '
+                  'username')
+            username = __get_username()
+            if username.lower() == 'q':
+                break
+        if username.lower() == 'q':
+            print()
+            return
+    # if we get here, we have a valid Last.fm username
+    init_user_info_file(username)
+    get_recent_tracks(username)
 
 
 def init_user_info_file(username):
@@ -82,8 +85,8 @@ def get_recent_tracks(username):
     Fetches all of the user's scrobbled data using the Last.fm API
     '''
     # Inform the user the fetching process is about to begin
-    ansi_msg = (f'\n{ANSI.BRIGHT_WHITE_BOLD}\"Please hold tight as I fetch '
-                f'your data from Last.fm!\"{ANSI.RESET} -Bytey\n')
+    ansi_msg = (f'\n{ANSI.CYAN_BOLD}\"Please hold tight as I fetch '
+                f'your data from Last.fm!\"{ANSI.RESET} -Fetch\n')
     print(ansi_msg)
     # Create the desired txt file to store scrobbled data
     scrobbled_data_path = get_path('scrobbled_data', f'{username}.txt')
@@ -115,9 +118,8 @@ def get_recent_tracks(username):
 def __get_username():
     ANSI_USER = ANSI.CYAN_BOLD + 'username' + ANSI.RESET
     ANSI_Q = ANSI.CYAN_BOLD + '`q`' + ANSI.RESET
-    prompt = f'\Enter your Last.fm {ANSI_USER}; to exit, type {ANSI_Q}: '
-    print()
-    print(prompt + ANSI.CYAN, end='')
+    prompt = f'Provide your Last.fm {ANSI_USER}; to exit, type {ANSI_Q}: '
+    print(f'\n{prompt}{ANSI.CYAN}', end='')
     user_input = input()
     print(ANSI.RESET, end='')  # resets ansi back to default
     return user_input

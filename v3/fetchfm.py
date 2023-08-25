@@ -16,28 +16,12 @@ LOGO = """
 """
 
 USERNAME = ''
+CATALOG = None
 prev_user = ''
 has_previous_user = False
-db = None  # global catalog obj
 
 
 # =========== [1] Main Program: =============================================
-
-def check_for_prev_user():
-    '''
-    Checks to see if there exists a valid Last.fm username stored in the
-    current_user.txt file. Flips the global `has_previous_user` variable to
-    True in the case that one is found, left as False otherwise
-    '''
-    current_user_path = get_path('user_info', 'current_user.txt')
-    if path.exists(current_user_path):
-        with open(current_user_path, 'r') as f:
-            text = f.read()
-            if is_valid_user(text):
-                global has_previous_user
-                has_previous_user = True
-                global prev_user
-                prev_user = text
 
 def main():
     display_logo()
@@ -63,10 +47,28 @@ def display_logo():
     print_text_animated(f'\n{ansi_logo}', 1)
 
 
+def check_for_prev_user():
+    '''
+    Checks to see if there exists a valid Last.fm username stored in the
+    current_user.txt file. Flips the global `has_previous_user` variable to
+    True in the case that one is found, left as False otherwise
+    '''
+    current_user_path = get_path('user_info', 'current_user.txt')
+    if path.exists(current_user_path):
+        with open(current_user_path, 'r') as f:
+            text = f.read()
+            if is_valid_user(text):
+                global has_previous_user
+                has_previous_user = True
+                global prev_user
+                prev_user = text
+
+
 def get_username():
     '''
     Prompts the user to enter their Last.fm username, default to the previous
-    user (if available), or quit
+    user (if available), or quit. Does NOT check if the user input is a valid
+    Last.fm username.
     '''
     ANSI_ACCENT = ANSI.CYAN_BOLD
     prompt = f'Provide your Last.fm {ANSI_ACCENT}username{ANSI.RESET}'
@@ -84,9 +86,9 @@ def get_username():
 
 def check_lastfm_user(username):
     '''
-    Repeatedly prompts the user for their Last.fm username as long as a valid 
-    one isn't given. Once a valid username is provided, fetches the user's
-    scrobbled data and runs the Fetchfm main UI
+    Prompts the user for their Last.fm username until a valid one is given. 
+    Once a valid username is provided, fetches the user's scrobbled data and
+    runs the Fetch.fm UI
     '''
     global USERNAME
     while username.isspace() or not is_valid_user(username):
@@ -95,30 +97,30 @@ def check_lastfm_user(username):
         username = get_username()
         if username.lower() == 'q' or (username == '' and has_previous_user):
             break
-    # Check if user wishes to continue with the program or quit
+    # If we get here, the user has either entered a valid username, wishes to
+    # us the previous user, or would like to quit out of the program
     if username.lower() == 'q':
         bytey_goodbye_msg()
     elif username == '' and has_previous_user:
-        print('hi')
-        global USERNAME
         USERNAME = prev_user
         run_user_interface()
     else:
-        # if we get here, the user has entered a VALID username. verify that
-        # this username is the one they would like to proceed with (ie. typos)
-        # TODO TODO
-        ANSI_USERNAME = ANSI.CYAN_BOLD + username + ANSI.RESET
+        # verify that the user wishes to proceed with this username (ie. typos)
+        ANSI_USER = ANSI.CYAN_BOLD + username + ANSI.RESET
         ANSI_Y = ANSI.CYAN_BOLD + '`y`' + ANSI.RESET
         ANSI_ENTER = ANSI.CYAN_BOLD + '`enter`' + ANSI.RESET
-        print(f'\nYour Last.fm username is currently set to {ANSI_USERNAME}. Type {ANSI_Y} to make edits, else hit {ANSI_ENTER} to continue: ' + ANSI.CYAN, end='')
+        print(f'\nYour Last.fm username is currently set to {ANSI_USER}. Type '
+              f'{ANSI_Y} to make edits, else hit {ANSI_ENTER} to continue: ' 
+              + ANSI.CYAN, end='')
         user_input = input()
         print(ANSI.RESET, end='')  # reset ansi back to default
         if user_input.lower() == 'y' or user_input.lower() == 'yes':
             # the user would like to make changes to their username
             ANSI_Q = ANSI.CYAN_BOLD + '`q`' + ANSI.RESET
-            print(f'  -> Provide new username, or type {ANSI_Q} to quit: ' + ANSI.CYAN, end='')
+            print(f'  -> Provide new username, or type {ANSI_Q} to quit: ' 
+                  + ANSI.CYAN, end='')
             user_input = input()
-            print(ANSI.RESET, end='')
+            print(ANSI.RESET, end='')  # reset ansi back to default
             check_lastfm_user(user_input)
         else:
             USERNAME = username
@@ -128,13 +130,13 @@ def check_lastfm_user(username):
 
 def create_database():
     '''
-    Creates the global catalog object ('db')
+    Creates the global catalog object
     '''
-    global db
+    global CATALOG
     file_path = get_path('scrobbled_data', f'{USERNAME}.txt')
     with open(file_path, 'r') as f:
         scrobbled_data = f.readlines()
-        db = Catalog(USERNAME, scrobbled_data)
+        CATALOG = Catalog(USERNAME, scrobbled_data)
 
 
 def run_user_interface():
@@ -163,8 +165,8 @@ def print_fun_facts():
     '''
     Prints Bytey's fun facts (i.e. user info) to the terminal
     '''
-    total_num_days = db.get_total_num_distinct_days()
-    most_streamed_days, num_streams = db.most_streamed_day_overall()
+    total_num_days = CATALOG.get_total_num_distinct_days()
+    most_streamed_days, num_streams = CATALOG.most_streamed_day_overall()
     # read in info from the user's user_info.txt file
     result = read_user_info_txt_file()
     if result is None:
@@ -324,15 +326,14 @@ def bytey_goodbye_msg():
 
 
 def print_text_animated(text, end_delay_in_secs):
-    print(text, end='')
-    # LAST_INDEX = len(text) - 1
-    # for i, ch in enumerate(text):
-    #     if i == LAST_INDEX:
-    #         sleep(end_delay_in_secs)
-    #     elif ch != ' ':
-    #         # only sleep for visible chars
-    #         sleep(0.009)
-    #     print(ch, end='', flush=True)
+    LAST_INDEX = len(text) - 1
+    for i, ch in enumerate(text):
+        if i == LAST_INDEX:
+            sleep(end_delay_in_secs)
+        elif ch != ' ':
+            # only sleep for visible chars
+            sleep(0.009)
+        print(ch, end='', flush=True)
 
 
 def ansi_with_commas(num):
