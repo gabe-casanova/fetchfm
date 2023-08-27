@@ -31,7 +31,8 @@ def main():
     print()
     username = get_username()
     if username.lower() == 'q':
-        bytey_goodbye_msg()
+        print()
+        return
     elif username == '' and has_previous_user:
         # previous user route
         global USERNAME
@@ -103,7 +104,8 @@ def check_lastfm_user(username):
     # If we get here, the user has either entered a valid username, wishes to
     # us the previous user (if available), or would like to quit the program
     if username.lower() == 'q':
-        bytey_goodbye_msg()
+        print()
+        return
     elif username == '' and has_previous_user:
         USERNAME = prev_user
         run_user_interface()
