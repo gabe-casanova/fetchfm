@@ -20,6 +20,8 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
+__DEBUGGING = True
+
 
 # =========== [1] Main Program: =============================================
 
@@ -159,15 +161,16 @@ def run_user_interface():
         if my_choice == MainMenuChoices.QUIT:
             break
         MENU_FUNCTIONS[my_choice]()  # call corresponding function (switch)
-    # if we get here, the user has terminated the program
-    bytey_goodbye_msg()
 
 
 def option_2():
     '''
     Provides the user the oppurtunity to query their timing data
     '''
-    # TODO--
+    result = CATALOG.artist_listening_time('Lana Del Rey')
+    total_seconds = result[1]
+    print(result)
+    print_seconds_human_readable(total_seconds)
     pass
 
 
@@ -237,16 +240,16 @@ def print_fun_facts(BYTEY, ARROWS, ansi, n_streams, most_streamed_days):
         bytey_4 = (f'{BYTEY[4]} {ARROWS[2]} you listened to the most music on '
                    f'{ansi_date}, with {ansi[7]} total songs played!')
     # Construct the message
-    ANSI_GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
     msg = f"""\
    {BYTEY[0]}
-   {BYTEY[1]}Hey there, {ansi[0]}! Here are some fun music stats I dug up about you--
-   {BYTEY[2]} {ARROWS[0]} you've listened to {ansi[1]} tracks over the past {ansi[6]} days, \
-averaging {ansi[5]} tracks listened a day
-   {BYTEY[3]} {ARROWS[1]} you\'ve enjoyed {ansi[2]} unique songs, explored {ansi[3]} \
-different albums, and discovered {ansi[4]} diverse artists
+   {BYTEY[1]}Hey there, {ansi[0]}! Here are some fun music stats I dug up \
+about you--
+   {BYTEY[2]} {ARROWS[0]} you've listened to {ansi[1]} tracks over the past \
+{ansi[6]} days, averaging {ansi[5]} tracks listened a day
+   {BYTEY[3]} {ARROWS[1]} you\'ve enjoyed {ansi[2]} unique songs, explored \
+{ansi[3]} different albums, and discovered {ansi[4]} diverse artists
    {bytey_4}
-  {ANSI_GRASS} \
+  {ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET} \
 """
     print(msg)
     
@@ -353,31 +356,18 @@ def bytey_welcome_msg():
     print_text_animated(f'\n{msg}', 0)
 
 
-def bytey_goodbye_msg():
-    BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
-    msg = f""" 
-  /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
- |     Thanks for letting me tag along with you! See you again soon :)    |
-  \\____________________________________   _______________________________/
-                                       | /
-                         {BYTEY[0]} |/
-                         {BYTEY[1]}
-                         {BYTEY[2]}
-                         {BYTEY[3]}
-                         {BYTEY[4]}
-"""
-    print_text_animated(f'{msg}\n', 0)
-
-
 def print_text_animated(text, end_delay_in_secs):
-    LAST_INDEX = len(text) - 1
-    for i, ch in enumerate(text):
-        if i == LAST_INDEX:
-            sleep(end_delay_in_secs)
-        elif ch != ' ':
-            # only sleep for visible chars
-            sleep(0.009)
-        print(ch, end='', flush=True)
+    if __DEBUGGING:
+        print(text, end='')
+    else:
+        LAST_INDEX = len(text) - 1
+        for i, ch in enumerate(text):
+            if i == LAST_INDEX:
+                sleep(end_delay_in_secs)
+            elif ch != ' ':
+                # only sleep for visible chars
+                sleep(0.009)
+            print(ch, end='', flush=True)
 
 
 def ansi_with_commas(num):
@@ -390,7 +380,7 @@ def ansi_with_commas(num):
 def print_seconds_human_readable(total_seconds):
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-    print(f'{hours}h {minutes}m {seconds}s spent listening')
+    print(f'{int(hours)}h {int(minutes)}m {int(seconds)}s spent listening')
 
 
 def seconds_to_days(total_seconds):
