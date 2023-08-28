@@ -32,6 +32,10 @@ Public Methods:
     -  artist_listening_time(artist) -> tuple[str, float, bool]
     -  album_listening_time(album, artist) -> tuple[str, str, float, int, bool]
   /
+    -  top_songs(n) -> list[tuple[str, int]]
+    -  top_artists(n) -> list[tuple[str, int]]
+    -  top_albums(n) -> list[tuple[str, int]]
+  /
     -  num_plays_for_song(song) -> int
     -  num_plays_for_artist(artist) -> int
     -  num_plays_for_album(album) -> int
@@ -224,6 +228,41 @@ class Catalog():
                 and time_obj.second == 0)
            
     
+    ''''''
+
+    def top_songs(self, n):
+        '''
+        Returns the user's top N songs as a list of tuples containing:
+            * `str`: song name
+            * `int`: playcount
+        '''
+        return self.__top_items(self.__alpha_song_catalog, n)
+    
+    def top_artists(self, n):
+        ''''
+        Returns the user's top N artists as a list of tuples containing:
+            * `str`: artist name
+            * `int`: playcount
+        '''
+        return self.__top_items(self.__alpha_artist_catalog, n)
+
+    def top_albums(self, n):
+        '''
+        Returns the user's top N albums as a list of tuples containing:
+            * `str`: album name
+            * `int`: playcount
+        '''
+        return self.__top_items(self.__alpha_album_catalog, n)
+    
+    def __top_items(self, catalog, n) -> list[tuple[str, int]]:
+        my_key = self.__by_num_scrobs
+        sorted_items = sorted(catalog.items(), key=my_key, reverse=True)
+        top_n = [(item, len(scrobs)) for item, scrobs in sorted_items[:n]]
+        return top_n
+
+    def __by_num_scrobs(self, alpha_catalog_item):
+        return len(alpha_catalog_item[1])
+
     ''''''
 
     def num_plays_for_song(self, song):

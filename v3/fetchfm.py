@@ -20,7 +20,7 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
-__DEBUGGING = False
+__DEBUGGING = True
 
 
 # =========== [1] Main Program: =============================================
@@ -133,9 +133,9 @@ def check_lastfm_user(username):
             run_user_interface()
 
 
-def create_database():
+def create_catalog():
     '''
-    Creates the global catalog object
+    Creates the user's global catalog object
     '''
     global CATALOG
     file_path = get_path('scrobbled_data', f'{USERNAME}.txt')
@@ -155,7 +155,7 @@ def run_user_interface():
         MainMenuChoices.SCROBBLES: NotImplemented
     }
     fetch_scrobbled_data(USERNAME)  # update with user's new scrobbles
-    create_database()
+    create_catalog()
     bytey_welcome_msg()
     while True:
         display_main_menu()
@@ -173,7 +173,6 @@ def option_2():
     total_seconds = result[1]
     print(result)
     print_seconds_human_readable(total_seconds)
-    pass
 
 
 def option_1():
