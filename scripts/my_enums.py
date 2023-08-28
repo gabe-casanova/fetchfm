@@ -1,11 +1,18 @@
 from enum import Enum
 
+
 class MainMenuChoices(Enum):
     FUN_FACTS = 1
     TIMING_DATA = 2
     TRACK_STATS = 3
     SCROBBLES = 4
-    QUIT = 5
+
+
+class QueryType(Enum):
+    SONG = 1
+    ARTIST = 2
+    ALBUM = 3
+
 
     '''
         2. TIME_BASED_STATS

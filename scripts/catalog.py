@@ -147,10 +147,8 @@ class Catalog():
         display_prog_bool = self.num_plays_for_artist(corrected_artist) > 50
         if display_prog_bool:
             # display progress bar
-            ANSI_BW = ANSI.BRIGHT_WHITE
-            ansi_msg = (f'{ANSI_BW}\"Hold tight as I calculate the total time '
-                        f'you\'ve listened to {corrected_artist}\"{ANSI.RESET}'
-                        ' - Fetch\n')
+            ansi_msg = (' \"Hold tight as I calculate the total time you\'ve '
+                        f'listened to {corrected_artist}\" -Fetch\n')
             print(f'\n{ansi_msg}')
             num_scrobs = len(self.__alpha_artist_catalog[corrected_artist])
             prog_bar = tqdm(total=num_scrobs)
@@ -171,7 +169,6 @@ class Catalog():
         if display_prog_bool:
             # close progress bar
             prog_bar.close()
-            print()
         total_time = total_time.total_seconds()
         return corrected_artist, total_time, missing_time_flag
 
@@ -279,10 +276,7 @@ class Catalog():
         if scrobs:
             return len(scrobs)
         else:
-            print(ANSI.RESET)
-            ansi_item = f'{ANSI.BRIGHT_CYAN_BOLD}{item}{ANSI.RESET}'
-            print(f' * {ansi_item} was not found within your Last.fm data\n')
-        return 0
+            return 0
     
     ''''''
 
