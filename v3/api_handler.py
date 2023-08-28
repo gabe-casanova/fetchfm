@@ -11,6 +11,11 @@ from ansi import ANSI
 API_KEY:str = open('v3/admin/api_key.txt').read()        #  ** Replace with your API_KEY **
 USER_AGENT:str = open('v3/admin/user_agent.txt').read()  #  ** Replace with your USER_AGENT **
 
+# TODO-- fix bug with user_info/{USERNAME}.txt
+#           figure out why it takes long to display tqdm
+#           make it so if we've cached scrobs, then quickly incrememt bar vs instantly
+
+USERNAME = ''
 song_length_cache = {}
 
 
@@ -19,29 +24,29 @@ song_length_cache = {}
 def fetch_scrobbled_data(username):
     '''
     Handles the process of fetching all of the user's scrobbled data and 
-    storing it in a seperate text file stored at /scrobbled_data/{username}.txt
+    storing it in a seperate file located at /scrobbled_data/{username}.txt
     '''
     if username == '':
-        # we only get here when doing the explicit `getdata` command while 
-        # running api_handler.py (we must prompt the user for their Last.fm 
-        # as since we aren't passed one in)
-        username = __get_username()
-        while username.isspace() or not is_valid_user(username):
+        # user ran 'python api_handler.py fetch' (prompt for username)
+        while True:
+            username = __get_username()
+            if username.lower() == 'q':
+                print()
+                return
+            if is_valid_user(username):
+                break  # exit the while loop
             ANSI_USERNAME = ANSI.CYAN_BOLD + username + ANSI.RESET
             print(f'\n * Sorry, but {ANSI_USERNAME} is not a valid Last.fm '
                   'username')
-            username = __get_username()
-            if username.lower() == 'q':
-                break
-        if username.lower() == 'q':
-            print()
-            return
     # if we get here, we have a valid Last.fm username
-    init_user_info_file(username)
-    get_recent_tracks(username)
+    global USERNAME
+    USERNAME = username
+    init_user_info_file()
+    get_recent_tracks()
+    print()
 
 
-def init_user_info_file(username):
+def init_user_info_file():
     '''
     Uses the contents of the user.getInfo API request to write to a text file 
     to be used later on during the fetchfm program
@@ -51,7 +56,7 @@ def init_user_info_file(username):
               'track_count', 'url']
     response = lastfm_get({
         'method': 'user.getInfo',
-        'user': username
+        'user': USERNAME
     })
     if response is None:
         return  # early return
@@ -62,45 +67,46 @@ def init_user_info_file(username):
                  j_user['playlists'], j_user['realname'], j_user['subscriber'],
                  j_user['track_count'], j_user['url']]
     # time to write to our user_info text file
-    user_info_path = get_path('user_info', f'{username}.txt')
-    with open(user_info_path, 'w') as f:
+    user_info = get_path('user_info', f'{USERNAME}.txt')
+    with open(user_info, 'w') as f:
         # get the current datetime and format it
         current_datetime = datetime.now()
         formatted_date = current_datetime.strftime('%d %b %Y')
         twelve_hour_time = current_datetime.strftime('%I:%M %p')
         # timestamp file + append the user_info received via API call
         f.write(f'timestamp\t{formatted_date} {twelve_hour_time}\n')
-        f.write(f'username\t{username}\n')
+        f.write(f'username\t{USERNAME}\n')
         for i, label in enumerate(LABELS):
             f.write(f'{label}\t{user_info[i]}\n')
-        f.close()
     # write the current username to a text file in subdir user_info/
-    username_path = get_path('user_info', 'current_user.txt')
-    with open(username_path, 'w') as f:
-        f.write(username)
+    current_user = get_path('user_info', 'current_user.txt')
+    with open(current_user, 'w') as f:
+        f.write(USERNAME)
     
 
-def get_recent_tracks(username):
+def get_recent_tracks():
     '''
     Fetches all of the user's scrobbled data using the Last.fm API
     '''
     # Inform the user the fetching process is about to begin
-    ansi_msg = (f'\n{ANSI.CYAN_BOLD}\"Please hold tight as I fetch '
-                f'your data from Last.fm!\"{ANSI.RESET} -Fetch\n')
+    ansi_msg = (f'\n >> {ANSI.WHITE_UNDERLINED}Please hold tight as we fetch '
+                f'{USERNAME}\'s data from Last.fm!{ANSI.RESET}\n')
     print(ansi_msg)
     # Create the desired txt file to store scrobbled data
-    scrobbled_data_path = get_path('scrobbled_data', f'{username}.txt')
-    Path(scrobbled_data_path).touch()
+    scrobbled_data = get_path('scrobbled_data', f'{USERNAME}.txt')
+    Path(scrobbled_data).touch()
     # Begin process of fetching data from Last.fm
+    last_saved_scrob = __get_last_saved_scrobble(scrobbled_data)
+    reached_last_saved_scrob = False
     page = 1
-    total_pages = __get_num_total_pages(username)
+    total_pages = __get_num_total_pages()
     prog_bar = tqdm(total=total_pages)
-    while page <= total_pages:
+    while page <= total_pages and not reached_last_saved_scrob:
         prog_bar.update(1)
         payload = {
             'method': 'user.getRecentTracks',
             'limit': 200,
-            'user': username,
+            'user': USERNAME,
             'page': page
         }
         response = lastfm_get(payload)
@@ -108,10 +114,23 @@ def get_recent_tracks(username):
             break
         # loop through the tracks listed on this page
         j_recenttracks = response.json()['recenttracks']
-        __write_scrobbles_to_file(j_recenttracks, username)
-        time.sleep(0.25)  # rate limit
-        page += 1
-    # end of while loop, terminate the progress bar
+        reached_last_saved_scrob = __write_scrobs_to_file(j_recenttracks, 
+                                                          last_saved_scrob)
+        if reached_last_saved_scrob:
+            # now combine the new scrobbles with the old scrobbles
+            temp_file = get_path('scrobbled_data', 'temp.txt')
+            with open(scrobbled_data, 'r') as f:
+                old_scrobs = f.read()
+            with open(temp_file, 'a') as f:
+                f.write(old_scrobs)
+            os.replace(temp_file, scrobbled_data)
+        else:
+            time.sleep(0.25)  # rate limit
+            page += 1
+    ''' end of while loop, terminate the progress bar '''
+    if page != total_pages:
+        # we were able to speed up the process by caching old scrobs
+        prog_bar.update(total_pages - page)
     prog_bar.close()
 
 
@@ -125,10 +144,10 @@ def __get_username():
     return user_input
 
 
-def __write_scrobbles_to_file(j_recenttracks, username):
+def __write_scrobs_to_file(j_recenttracks, last_saved_scrob):
     '''
     Helper function to gather the scrobbles from the current API request and
-    write the data generated into a text file in the scrobbled_data/ directory
+    write the data generated into a text file in the scrobbled_data/ subdir
     '''
     j_tracks = j_recenttracks['track']
     for track in j_tracks:
@@ -140,21 +159,30 @@ def __write_scrobbles_to_file(j_recenttracks, username):
             # disregards tracks that are currently being scrobbled
             date = date['#text']
             scrob = date + '\t' + artist + '\t' + album + '\t' + song
-            # time to write scrob to the file!
-            scrobbled_data_path = get_path('scrobbled_data', f'{username}.txt')
-            with open(scrobbled_data_path, 'a') as f:
-                f.write(f'{scrob}\n')
-                f.close()
+            if last_saved_scrob is None:
+                # case 1: append scrobbles to user's txt file as expected
+                scrobbled_data = get_path('scrobbled_data', f'{USERNAME}.txt')
+                with open(scrobbled_data, 'a') as f:
+                    f.write(f'{scrob}\n')   
+            else:
+                # case 2: append new scrobbles to a temp txt file until the
+                #         current scrob equals the last_saved_scrob
+                if scrob == last_saved_scrob:
+                    return True
+                temp_data = get_path('scrobbled_data', 'temp.txt')
+                with open(temp_data, 'a') as f:
+                    f.write(f'{scrob}\n')
+    return False
 
 
-def __get_num_total_pages(username):
+def __get_num_total_pages():
     '''
     Returns the user's overall `totalPages` used to instantiate progress bar
     '''
     payload = {
         'method': 'user.getRecentTracks',
         'limit': 200,
-        'user': username,
+        'user': USERNAME,
         'page': 1
     }
     response = lastfm_get(payload)
@@ -162,6 +190,22 @@ def __get_num_total_pages(username):
         return -1
     j_recenttracks = response.json()['recenttracks']
     return int(j_recenttracks['@attr']['totalPages'])
+
+
+def __get_last_saved_scrobble(scrobbled_data):
+    '''
+    In order to only make API calls for those scrobbles which we don't already
+    have saved in the user's scrobbled_data txt file, let's save the 'last 
+    saved scrobble' into a variable that way we can check if we've reached the
+    point in the fetching process where we can stop making API calls since we
+    have all the rest of the remaining data
+    '''
+    with open(scrobbled_data, 'r') as f:
+        last_saved = f.readline().strip()
+    if last_saved == '':
+        return None
+    # we assume that the read-in scrobble is formatted correctly
+    return last_saved
 
 
 # =========== [2] artist.getCorrection: =====================================
@@ -320,7 +364,7 @@ def lastfm_get(payload) -> requests:
 
 def get_path(subdir, file) -> str:
     '''
-    Returns the abs path for a newly created file in the specified 
+    Returns the absolute path for a newly created file in the specified 
     subdirectory
     '''
     v3_path = os.path.dirname(__file__)
@@ -382,7 +426,6 @@ def jprint(obj):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'getdata':
-        # only run fetch_scrobbled_data() if explicitly asked to
+    if len(sys.argv) > 1 and sys.argv[1] == 'fetch':
         fetch_scrobbled_data('')
     

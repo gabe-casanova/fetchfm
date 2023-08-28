@@ -130,7 +130,6 @@ def check_lastfm_user(username):
         else:
             # the user would like to proceed with the current username
             USERNAME = username
-            fetch_scrobbled_data(username)
             run_user_interface()
 
 
@@ -155,6 +154,7 @@ def run_user_interface():
         MainMenuChoices.TRACK_STATS: NotImplemented,
         MainMenuChoices.SCROBBLES: NotImplemented
     }
+    fetch_scrobbled_data(USERNAME)  # update with user's new scrobbles
     create_database()
     bytey_welcome_msg()
     while True:
@@ -338,7 +338,7 @@ def read_user_info_txt_file():
 def bytey_welcome_msg():
     BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
     GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
-    msg = f"""
+    msg = f""" \
   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
  |                              Welcome to Fetch.fm!                                  |
  |                                                                                    |
