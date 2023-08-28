@@ -20,7 +20,7 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
-__DEBUGGING = False
+__DEBUGGING = True
 
 
 # =========== [1] Main Program: =============================================
@@ -168,24 +168,45 @@ def run_user_interface():
         MENU_FUNCTIONS[my_choice]()  # call corresponding function (switch)
 
 
+def __run_option_2_for_songs(ansi):
+    # request user input
+    print(' \"Please provide the song and artist name you\'d like to '
+              'search for\" -Fetch\n')
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
+    song = input()
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+    artist = input()
+    result = CATALOG.song_listening_time(song, artist)
+    if result[2] is None:
+        if song == '' or artist == '':
+            print('\n * No data found for provided input\n')
+        else:
+            print(f'\n * No data found for \"{song}\" by {artist}\n')
+    else:
+        song, artist, total_seconds = result  # unpack
+        num_listens = CATALOG.num_plays_for_song(song) 
+        time = get_seconds_human_readable(total_seconds)
+        ansi_hour = ansi_with_commas(ansi, time[0])
+        ansi_min = ansi_with_commas(ansi, time[1])
+        ansi_sec = ansi_with_commas(ansi, time[2])
+        ANSI_SONG = ANSI.BRIGHT_GREEN_BOLD + song + ANSI.RESET
+        ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
+        ANSI_NUM = ansi_with_commas(ANSI.RESET, num_listens)
+        print(f'\n  You\'ve listened to {ANSI_SONG} by {ANSI_ARTIST} '
+                f'{ANSI_NUM} times; totaling {ansi_hour} hours, {ansi_min} '
+                f'minutes, and {ansi_sec} seconds!\n')
+
+
 def option_2():
-    # TODO--
     '''
     Provides the user the oppurtunity to query their timing data
     '''
     display_option_2_menu()
-    QUERY_TYPES = list(QueryType)
-    my_choice = get_choice(QUERY_TYPES, ANSI.BRIGHT_GREEN_BOLD)
+    ansi = ANSI.BRIGHT_GREEN_BOLD
+    my_choice = get_choice(list(QueryType), ansi)
     # prompt user for input based on query typpe
     if my_choice == QueryType.SONG:
-        print(' \"Please provide the song and artist name you\'d like to '
-              'search for\" -Fetch\n')
-        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
-        song = input()
-        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-        artist = input()
-        result = CATALOG.song_listening_time(song, artist)
-        print('\n', result, '\n')
+        __run_option_2_for_songs(ansi)
     elif my_choice == QueryType.ARTIST:
         print(' \"Please provide the artist name you\'d like to search for\" '
               '-Fetch\n')
@@ -431,10 +452,10 @@ def ansi_with_commas(ansi, num):
     return f'{ansi}{format(num, ",")}{ANSI.RESET}'
 
 
-def print_seconds_human_readable(total_seconds):
+def get_seconds_human_readable(total_seconds):
     hours, remainder = divmod(total_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-    print(f'{int(hours)}h {int(minutes)}m {int(seconds)}s spent listening')
+    return int(hours), int(minutes), int(seconds)
 
 
 def seconds_to_days(total_seconds):

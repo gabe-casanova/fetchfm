@@ -16,7 +16,6 @@ class QueryType(Enum):
 
     '''
         2. TIME_BASED_STATS
-            > SONG_LENGTH
             > LISTENING_TIME
 
         3. TRACK_BASED_STATS
