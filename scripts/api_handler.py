@@ -8,8 +8,8 @@ from datetime import datetime, time
 from pathlib import Path
 from ansi import ANSI
 
-API_KEY:str = open('v3/admin/api_key.txt').read()        #  ** Replace with your API_KEY **
-USER_AGENT:str = open('v3/admin/user_agent.txt').read()  #  ** Replace with your USER_AGENT **
+API_KEY:str = open('admin/api_key.txt').read()        #  ** Replace with your API_KEY **
+USER_AGENT:str = open('admin/user_agent.txt').read()  #  ** Replace with your USER_AGENT **
 
 USERNAME = ''
 song_length_cache = {}
@@ -364,10 +364,11 @@ def get_path(subdir, file) -> str:
     Returns the absolute path for a newly created file in the specified 
     subdirectory
     '''
-    v3_path = path.dirname(__file__)
-    subdir_path = path.join(v3_path, subdir)
-    # If the subdirectory doesn't exist, create it dynamically
+    scripts_dir = path.dirname(__file__)
+    parent_path = path.abspath(path.join(scripts_dir, '..'))
+    subdir_path = path.join(parent_path, subdir)
     if not path.exists(subdir_path):
+        # If the subdirectory doesn't exist, create it dynamically
         makedirs(subdir_path)
     return path.join(subdir_path, file)
 
