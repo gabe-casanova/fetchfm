@@ -1,11 +1,11 @@
+from tqdm import tqdm
+from time import sleep
+from datetime import date, time, timedelta
+from collections import OrderedDict
 from ansi import ANSI
 from scrobble import Scrobble
 from api_handler import fetch_song_duration, fetch_album_duration, \
     fetch_artist_name_corrected
-from datetime import date, timedelta, time as dt_time
-from collections import OrderedDict
-import time
-from tqdm import tqdm
 
 
 '''
@@ -26,7 +26,7 @@ Instance Variables:
 '''
 ------------------------------------------------------------------------------
 Public Methods:
-    -  song_length(song, artist) ->  -> tuple[str, str, dt_time]
+    -  song_length(song, artist) ->  -> tuple[str, str, time]
   /
     -  song_listening_time(song, artist) -> tuple[str, str, float]
     -  artist_listening_time(artist) -> tuple[str, float, bool]
@@ -75,7 +75,7 @@ Public Methods:
 
 class Catalog():
     '''
-    A class to represent a catalog (collection) of Scrobbles
+    A class to represent a collection of Scrobbles
     '''
 
     def __init__(self, username, lines_of_text:list):
@@ -102,7 +102,7 @@ class Catalog():
         Returns a tuple containing...
             - `str`: song name (formatted correctly if found)
             - `str`: artist name (formatted correctly if found)
-            - `dt_time`: track length (as a datetime.time object)
+            - `time`: track length (as a datetime.time object)
         '''
         return fetch_song_duration(song, artist, self.__username)
     
@@ -146,7 +146,7 @@ class Catalog():
             ANSI_BW = ANSI.BRIGHT_WHITE
             ansi_msg = (f'{ANSI_BW}\"Hold tight as I calculate the total time '
                         f'you\'ve listened to {corrected_artist}\"{ANSI.RESET}'
-                        ' -Bytey\n')
+                        ' - Fetch\n')
             print(f'\n{ansi_msg}')
             num_scrobs = len(self.__alpha_artist_catalog[corrected_artist])
             prog_bar = tqdm(total=num_scrobs)
@@ -203,7 +203,7 @@ class Catalog():
         return result[0], result[1], total_time, result[3], missing_time_flag
 
 
-    def __calc_song_total_time(self, timeobj:dt_time, num_plays):
+    def __calc_song_total_time(self, timeobj:time, num_plays):
         '''
         Calculates the total time user has spent listening to the given song 
         (represented by the datetime.time obj) in seconds
@@ -212,14 +212,14 @@ class Catalog():
         return song_len * num_plays
 
 
-    def __dt_obj_to_seconds(self, timeobj:dt_time):
+    def __dt_obj_to_seconds(self, timeobj:time):
         '''
         Extracts the total seconds from the provided datetime.time obj
         '''
         return timeobj.hour * 3600 + timeobj.minute * 60 + timeobj.second
 
 
-    def __has_zero_time(self, time_obj:dt_time):
+    def __has_zero_time(self, time_obj:time):
         return (time_obj.hour == 0 and time_obj.minute == 0 
                 and time_obj.second == 0)
            
@@ -598,7 +598,7 @@ class Catalog():
         if scrobs:
             for scrob in scrobs:
                 print(scrob)
-                time.sleep(0.05)
+                sleep(0.05)
         else:
             print('You did not listen to any music on that day!')
                 

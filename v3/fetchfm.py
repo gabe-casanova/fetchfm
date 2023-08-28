@@ -1,10 +1,10 @@
-from time import sleep
 from os import path
+from time import sleep
 from ansi import ANSI
 from catalog import Catalog
+from menu_choices import MainMenuChoices
 from api_handler import get_path, fetch_scrobbled_data, is_valid_user, \
     get_ansi_bytey
-from menu_choices import MainMenuChoices
 
 LOGO = """
       ███████╗███████╗████████╗░█████╗░██╗░░██╗░░░███████╗███╗░░░███╗  _ ♪   /)---(\\
@@ -20,7 +20,7 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
-__DEBUGGING = True
+__DEBUGGING = False
 
 
 # =========== [1] Main Program: =============================================
@@ -339,7 +339,7 @@ def bytey_welcome_msg():
     BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
     GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
     msg = f""" \
-  /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
+ /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
  |                              Welcome to Fetch.fm!                                  |
  |                                                                                    |
  |   My name's Bytetholomew, but you can call me `Fetch` for short! I'm the company   |
