@@ -20,7 +20,7 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
-_DEBUGGING = True
+_DEBUGGING = False
 
 
 # =========== [1] Main Program: =============================================
@@ -54,8 +54,8 @@ def run_user_interface():
     MENU_FUNCTIONS = {
         MainMenuChoices.FUN_FACTS: option_1,
         MainMenuChoices.TIMING_DATA: option_2,
-        MainMenuChoices.TRACK_STATS: NotImplemented,
-        MainMenuChoices.SCROBBLES: NotImplemented
+        MainMenuChoices.TRACK_STATS: not_implemented,
+        MainMenuChoices.SCROBBLES: not_implemented
     }
     MAIN_MENU_CHOICES = list(MainMenuChoices)
     ansi = ANSI.BRIGHT_CYAN_BOLD
@@ -128,6 +128,11 @@ def option_2():
     option_2()
 
 
+def not_implemented():
+    # TODO
+    print(' >> Work in progress\n')
+
+
 # =========== [2] Utility: ==================================================
 
 def get_choice(menu_choices, ansi):
@@ -177,6 +182,18 @@ def format_num(ansi, num):
     Formats the given number with commas and displays it with ANSI
     '''
     return f'{ansi}{format(num, ",")}{ANSI.RESET}'
+
+
+def format_time(total_seconds, ansi):
+    '''
+    Formats the given time tuple (hr, min, sec) with ANSI abbreviations
+    '''
+    time_tuple = get_seconds_human_readable(total_seconds)
+    hr, min, sec = time_tuple  # unpack
+    ansi_hr = f'{format_num(ansi, hr)}{ansi}h{ANSI.RESET}'
+    ansi_min = f'{format_num(ansi, min)}{ansi}m{ANSI.RESET}'
+    ansi_sec = f'{format_num(ansi, sec)}{ansi}s{ANSI.RESET}'
+    return ansi_hr, ansi_min, ansi_sec
 
 
 def get_seconds_human_readable(total_seconds):
@@ -423,98 +440,92 @@ def _display_option_2_menu():
 
 def _run_option_2_for_songs():
     # request user input
-    print(' "Please provide the song and artist name you\'d like to search '
-          'for" -Fetch\n')
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
-    song = input()
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-    artist = input()
-    # generate result for the provided song and artist
-    result = CATALOG.song_listening_time(song, artist)
-    if result[2] is None:
-        # if we get here, no data was found for the provided input
+    prompt = ('"Please provide the song and artist name you\'d like to search'
+              ' for" -Fetch')
+    song, artist, result = _get_opt2_listening_time(prompt, QueryType.SONG)
+    if result[2] == 0:  # checks total_seconds val
         if song == '' or artist == '':
-            tag = 'provided input'
+            print('\n * No data found for provided input\n')
         else:
-            tag = f'"{song}" by {artist}'
-        print(f'\n * No data found for {tag}\n')
+            print(f'\n * No data found for "{song}" by {artist}\n')
         return
-    ''' if we get here, the user has useful data for the provided input '''
-    song, artist, total_seconds = result  # unpack
-    time = get_seconds_human_readable(total_seconds)
-    num_listens = CATALOG.num_plays_for_song(song) 
-    num_listens = format_num(ANSI.RESET, num_listens)
-    ''' format the retrieved data  '''
-    ansi = ANSI.BRIGHT_GREEN_BOLD
-    ANSI_HR = format_num(ansi, time[0]) + ansi + 'h' + ANSI.RESET
-    ANSI_MIN = format_num(ansi, time[1]) + ansi + 'm' + ANSI.RESET
-    ANSI_SEC = format_num(ansi, time[2]) + ansi + 's' + ANSI.RESET
-    ANSI_SONG = ansi + song + ANSI.RESET
-    ANSI_ARTIST = ansi + artist + ANSI.RESET
-    print(f'\n  You\'ve listened to {ANSI_SONG} by {ANSI_ARTIST} {num_listens}'
-          f' times; totaling {ANSI_HR}, {ANSI_MIN}, {ANSI_SEC}!\n')
+    # if we get here, the user has relevant listening time data
+    song, artist, total_seconds = result
+    playcount = CATALOG.num_plays_for_song(song)
+    _print_opt2_output(playcount, total_seconds, f'{song} by {artist}')
 
-# todo--
+
 def _run_option_2_for_artists():
-    ansi = ANSI.BRIGHT_GREEN_BOLD
     # request user input
-    print(' \"Please provide the artist name you\'d like to search for\" '
-              '-Fetch\n')
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-    artist = input()
-    result = CATALOG.artist_listening_time(artist)
-    if result[1] == 0:
-        # if we get here, no data was found for the provided input
+    prompt = ('"Please provide the artist name you\'d like to search for" '
+              '-Fetch')
+    artist, result = _get_opt2_listening_time(prompt, QueryType.ARTIST)
+    if result[1] == 0:  # checks total_seconds val
         if artist == '':
-            tag = 'provided input'
+            print('\n * No data found for provided input\n')
         else:
-            tag = f'\"{artist}\"'
-        print(f'\n * No data found for {tag}\n')
+            print(f'\n * No data found for "{artist}"\n')
         return
-    # if we get here, we received useful data for the provided artist
-    artist, total_seconds, _ = result  # unpack
-    time = get_seconds_human_readable(total_seconds)
-    ansi_hr = format_num(ansi, time[0])
-    ansi_min = format_num(ansi, time[1])
-    ansi_sec = format_num(ansi, time[2])
-    num_listens = CATALOG.num_plays_for_artist(artist) 
-    NUM_LISTENS = format_num(ANSI.RESET, num_listens)
-    ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
-    print(f'\n  You\'ve listened to {ANSI_ARTIST} {NUM_LISTENS} times; '
-          f'totaling {ansi_hr} hours, {ansi_min} minutes, and {ansi_sec} seconds!\n')
+    # if we get here, the user has relevant listening time data
+    artist, total_seconds, _ = result
+    playcount = CATALOG.num_plays_for_artist(artist) 
+    _print_opt2_output(playcount, total_seconds, artist)
 
 
 def _run_option_2_for_albums():
-    ansi = ANSI.BRIGHT_GREEN_BOLD
     # request user input
-    print(' \"Please provide the album and artist name you\'d like to search '
-          'for\" -Fetch\n')
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Album{ANSI.RESET}: ', end='')
-    album = input()
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-    artist = input()
-    result = CATALOG.album_listening_time(album, artist)
-    if result[2] == 0:
-        # if we get here, no data was found for the provided input
+    prompt = ('"Please provide the album and artist name you\'d like to search'
+              ' for\" -Fetch')
+    album, artist, result = _get_opt2_listening_time(prompt, QueryType.ALBUM)
+    if result[2] == 0:  # checks total_seconds val
         if album == '' or artist == '':
-            tag = 'provided input'
+            print('\n * No data found for provided input\n')
         else:
-            tag = f'\"{album}\" by {artist}'
-        print(f'\n * No data found for {tag}\n')
+            print(f'\n * No data found for "{album}" by {artist}\n')
         return
-    # if we get here, we received useful data for the provided album and artist
-    album, artist, total_seconds, playcount, _ = result  # unpack
-    time = get_seconds_human_readable(total_seconds)
-    ''' format retrieved data with ANSI escape codes '''
-    ansi_hr = format_num(ansi, time[0])
-    ansi_min = format_num(ansi, time[1])
-    ansi_sec = format_num(ansi, time[2])
-    PLAYCOUNT = format_num(ANSI.RESET, playcount)
-    ANSI_ALBUM = ANSI.BRIGHT_GREEN_BOLD + album + ANSI.RESET
-    ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
-    print(f'\n  You\'ve listened to {ANSI_ALBUM} by {ANSI_ARTIST} '
-          f'{PLAYCOUNT} times; totaling {ansi_hr} hours, {ansi_min} '
-          f'minutes, and {ansi_sec} seconds!\n')
+    # if we get here, the user has relevant listening time data
+    album, artist, total_seconds, playcount, _ = result
+    _print_opt2_output(playcount, total_seconds, f'{album} by {artist}')
+
+
+def _get_opt2_listening_time(prompt, type):
+    '''
+    Prompts the user for input relevant for the desired query type, then
+    generates the listening time for the given input data
+    '''
+    print(f' {prompt}\n')
+    if type == QueryType.SONG:
+        # prompt user for song and artist name
+        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
+        song = input()
+        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+        artist = input()
+        result = (song, artist, CATALOG.song_listening_time(song, artist))
+    elif type == QueryType.ARTIST:
+        # prompt user for artist name
+        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+        artist = input()
+        result = (artist, CATALOG.artist_listening_time(artist))
+    else:
+        # prompt user for album and artist name
+        assert(type == QueryType.ALBUM)
+        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Album{ANSI.RESET}: ', end='')
+        album = input()
+        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+        artist = input()
+        result = (album, artist, CATALOG.album_listening_time(album, artist))
+    return result
+
+
+def _print_opt2_output(playcount, total_seconds, item):
+    '''
+    Prints the generated output for option_2() to the screen
+    '''
+    ansi = ANSI.BRIGHT_GREEN_BOLD
+    ANSI_PLAYCOUNT = format_num(ansi, playcount)
+    ANSI_HR, ANSI_MIN, ANSI_SEC = format_time(total_seconds, ansi)
+    print(f'\n  You\'ve listened to {item} {ANSI_PLAYCOUNT} times; totaling '
+          f'{ANSI_HR}, {ANSI_MIN}, {ANSI_SEC}!\n')
 
     
 if __name__ == '__main__':

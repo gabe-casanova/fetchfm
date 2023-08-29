@@ -124,7 +124,7 @@ class Catalog():
         result = self.song_length(song, artist)
         if result[2] is None:
             # unable to find the given song in the Last.fm database
-            return song, artist, None
+            return song, artist, 0
         # we know the user requested a valid song
         num_plays = self.num_plays_for_song(result[0])  # correctly formatted
         total_time = self.__calc_song_total_time(result[2], num_plays)
