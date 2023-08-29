@@ -147,8 +147,8 @@ class Catalog():
         display_prog_bool = self.num_plays_for_artist(corrected_artist) > 50
         if display_prog_bool:
             # display progress bar
-            ansi_msg = (' \"Hold tight as I calculate the total time you\'ve '
-                        f'listened to {corrected_artist}\" -Fetch\n')
+            ansi_msg = (' "Hold tight as I calculate the total time you\'ve '
+                        f'listened to {corrected_artist}" -Fetch\n')
             print(f'\n{ansi_msg}')
             num_scrobs = len(self.__alpha_artist_catalog[corrected_artist])
             prog_bar = tqdm(total=num_scrobs)

@@ -15,9 +15,6 @@ class QueryType(Enum):
 
 
     '''
-        2. TIME_BASED_STATS
-            > LISTENING_TIME
-
         3. TRACK_BASED_STATS
             > BY_DATE
                 NUM_PLAYS_ON_DATE

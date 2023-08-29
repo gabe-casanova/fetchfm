@@ -20,16 +20,16 @@ CATALOG = None
 prev_user = ''
 has_previous_user = False
 
-__DEBUGGING = True
+_DEBUGGING = True
 
 
 # =========== [1] Main Program: =============================================
 
 def main():
-    display_logo()
-    check_for_prev_user()  # sets the `has_previous_user` global variable
+    _display_logo()
+    _check_for_prev_user()  # sets the `has_previous_user` global variable
     print()
-    username = get_username()
+    username = _get_username()
     if username.lower() == 'q':
         print()
         return
@@ -40,10 +40,160 @@ def main():
         run_user_interface()
     else:
         # new user route
-        check_lastfm_user(username)
+        _check_lastfm_user(username)
 
 
-def display_logo():
+def run_user_interface():
+    '''
+    Manages the Fetch.fm UI
+    '''
+    if not _DEBUGGING:
+        fetch_scrobbled_data(USERNAME)
+    _create_catalog()
+    _bytey_welcome_msg()
+    MENU_FUNCTIONS = {
+        MainMenuChoices.FUN_FACTS: option_1,
+        MainMenuChoices.TIMING_DATA: option_2,
+        MainMenuChoices.TRACK_STATS: NotImplemented,
+        MainMenuChoices.SCROBBLES: NotImplemented
+    }
+    MAIN_MENU_CHOICES = list(MainMenuChoices)
+    ansi = ANSI.BRIGHT_CYAN_BOLD
+    while True:
+        display_main_menu()
+        my_choice = get_choice(MAIN_MENU_CHOICES, ansi)
+        if my_choice == 'q':
+            break
+        MENU_FUNCTIONS[my_choice]()  # call corresponding function (switch)
+
+
+def display_main_menu():
+    '''
+    Prints a list of the Main Menu choices for the user to choose from
+    '''
+    ansi = ANSI.BRIGHT_CYAN
+    ANSI_MUSIC = f'{ANSI.GREEN}♪{ANSI.BLUE}♪{ANSI.BRIGHT_PURPLE}♪{ANSI.RESET}'
+    print(f' {ANSI.BRIGHT_CYAN_BOLD}Main Menu:{ANSI.RESET}')
+    print_menu_choice(1, ansi, f'fun facts for {USERNAME} {ANSI_MUSIC}')
+    print_menu_choice(2, ansi, 'explore your timing data')
+    print_menu_choice(3, ansi, 'explore your track stats')
+    print_menu_choice(4, ansi, 'delve into your scrobbles')
+    print_menu_choice(5, ansi, 'quit program\n')
+
+
+def option_1():
+    '''
+    Reads in user_info.txt data and prints the result/fun facts to the screen
+    '''
+    res = _read_user_info_txt_file()
+    if res is None:
+        print('  * Hmm... Fetch seems to have gotten lost. Try again soon!')
+        return
+    # `res` -> (realname, playcount, track_count, album_count, artist_count)
+    total_n_days = CATALOG.get_total_num_distinct_days()
+    most_streamed_days, num_streams = CATALOG.most_streamed_day_overall()
+    daily_avg = round(res[1] / total_n_days) if total_n_days != 0 else 0
+    ''' Generate ANSI symbols (i.e. Bytey list, arrows) '''
+    BYTEY = get_ansi_bytey(ANSI.RESET, True)
+    ARROWS = [
+        ANSI.GREEN + '⇒' + ANSI.RESET,
+        ANSI.BLUE + '⇒' + ANSI.RESET,
+        ANSI.BRIGHT_PURPLE + '⇒' + ANSI.RESET
+    ]
+    ''' Now, format the user info using ANSI and commas (if numeric). When
+        completed, `ansi` will be a tuple of the structure:
+            -> (realname, playcount, track_count, album_count, artist_count,
+                daily_avg, total_n_days, num_streams)
+    '''
+    ansi = _get_opt1_ansi_tuple(res[0], res[1], res[2], res[3], res[4],
+                               daily_avg, total_n_days, num_streams)
+    # Time to print to the screen
+    _print_fun_facts(BYTEY, ARROWS, ansi, num_streams, most_streamed_days)
+
+
+def option_2():
+    '''
+    Provides the user the oppurtunity to query their Last.fm timing data
+    '''
+    _display_option_2_menu()
+    my_choice = get_choice(list(QueryType), ANSI.BRIGHT_GREEN_BOLD)
+    if my_choice == QueryType.SONG:
+        _run_option_2_for_songs()
+    elif my_choice == QueryType.ARTIST:
+        _run_option_2_for_artists()
+    elif my_choice == QueryType.ALBUM:
+        _run_option_2_for_albums()
+    else:
+        return  # my_choice == 'q'
+    option_2()
+
+
+# =========== [2] Utility: ==================================================
+
+def get_choice(menu_choices, ansi):
+    '''
+    Retrieves the user's menu choice from the provided list of choices
+    '''
+    result = None
+    ansi_enter = f' {ansi}Enter Option #:{ANSI.RESET} '
+    while True:
+        choice = input(ansi_enter)
+        if choice.isdigit():
+            if int(choice) == len(menu_choices) + 1:
+                result = 'q'
+                break
+            if 1 <= int(choice) <= len(menu_choices):
+                result = menu_choices[int(choice) - 1]
+                break
+        # if we get here, the user did not type in an int. display message
+        print(f'\n  * {choice} isn\'t a valid choice\n')
+    print()
+    return result
+
+
+def print_menu_choice(choice, ansi, choice_description):
+    '''
+    Prints the provided menu-choice selection correctly formatted
+    '''
+    print(f'  ‣ {ansi}{choice}{ANSI.RESET}  {choice_description}')
+
+
+def print_text_animated(text, end_delay_in_secs):
+    if _DEBUGGING:
+        print(text, end='')
+    else:
+        LAST_INDEX = len(text) - 1
+        for i, ch in enumerate(text):
+            if i == LAST_INDEX:
+                sleep(end_delay_in_secs)
+            elif ch != ' ':
+                # only sleep for visible chars
+                sleep(0.009)
+            print(ch, end='', flush=True)
+
+
+def format_num(ansi, num):
+    '''
+    Formats the given number with commas and displays it with ANSI
+    '''
+    return f'{ansi}{format(num, ",")}{ANSI.RESET}'
+
+
+def get_seconds_human_readable(total_seconds):
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return int(hours), int(minutes), int(seconds)
+
+
+def seconds_to_days(total_seconds):
+    NUM_SECONDS_IN_DAY = 86400
+    num_days = total_seconds / NUM_SECONDS_IN_DAY
+    return num_days
+
+
+# =========== [3] Miscellaneous: ============================================
+
+def _display_logo():
     '''
     Displays the Fetch.fm logo to the screen
     '''
@@ -51,7 +201,7 @@ def display_logo():
     print_text_animated(f'\n{ansi_logo}', 1)
 
 
-def check_for_prev_user():
+def _check_for_prev_user():
     '''
     Checks to see if there exists a valid Last.fm username stored in the
     current_user.txt file. Flips the global `has_previous_user` variable to
@@ -68,7 +218,7 @@ def check_for_prev_user():
                 prev_user = text
 
 
-def get_username():
+def _get_username():
     '''
     Prompts the user to enter their Last.fm username, default to the previous
     user (if available), or quit. Does NOT check if the user input is a valid
@@ -88,7 +238,7 @@ def get_username():
     return user_input
 
 
-def check_lastfm_user(username):
+def _check_lastfm_user(username):
     '''
     Prompts the user for their Last.fm username until a valid one is given. 
     Once a valid username is provided, fetches the user's scrobbled data and
@@ -98,7 +248,7 @@ def check_lastfm_user(username):
     while username.isspace() or not is_valid_user(username):
         ANSI_USER = ANSI.CYAN_BOLD + username + ANSI.RESET
         print(f'\n * Sorry, but {ANSI_USER} is not a valid Last.fm username')
-        username = get_username()
+        username = _get_username()
         if username.lower() == 'q' or (username == '' and has_previous_user):
             break
     # If we get here, the user has either entered a valid username, wishes to
@@ -126,14 +276,37 @@ def check_lastfm_user(username):
                   + ANSI.CYAN, end='')
             user_input = input()
             print(ANSI.RESET, end='')  # reset ansi back to default
-            check_lastfm_user(user_input)
+            _check_lastfm_user(user_input)
         else:
             # the user would like to proceed with the current username
             USERNAME = username
             run_user_interface()
 
 
-def create_catalog():
+def _bytey_welcome_msg():
+    BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
+    GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
+    msg = f""" \
+ /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
+ |                              Welcome to Fetch.fm!                                  |
+ |                                                                                    |
+ |   My name's Bytetholomew, but you can call me `Fetch` for short! I'm the company   |
+ |  mascot, but today's my day off so I thought I'd spend it tagging along with you.  |
+ |                                                                                    |
+ |   Please select one of the following menu options to get started using Fetch.fm!   |
+  \\__________________________________________   _____________________________________/
+                                             | /
+                               {BYTEY[0]} |/
+                               {BYTEY[1]}
+                               {BYTEY[2]}
+                               {BYTEY[3]}
+                               {BYTEY[4]}
+                              {GRASS}
+"""
+    print_text_animated(f'\n{msg}\n', 0)
+
+
+def _create_catalog():
     '''
     Creates the user's global catalog object
     '''
@@ -144,230 +317,7 @@ def create_catalog():
         CATALOG = Catalog(USERNAME, scrobbled_data)
 
 
-def run_user_interface():
-    '''
-    Manages the Fetch.fm UI
-    '''
-    if not __DEBUGGING:
-        fetch_scrobbled_data(USERNAME)
-    create_catalog()
-    bytey_welcome_msg()
-    MENU_FUNCTIONS = {
-        MainMenuChoices.FUN_FACTS: option_1,
-        MainMenuChoices.TIMING_DATA: option_2,
-        MainMenuChoices.TRACK_STATS: NotImplemented,
-        MainMenuChoices.SCROBBLES: NotImplemented
-    }
-    MAIN_MENU_CHOICES = list(MainMenuChoices)
-    ansi = ANSI.BRIGHT_CYAN_BOLD
-    while True:
-        display_main_menu()
-        my_choice = get_choice(MAIN_MENU_CHOICES, ansi)
-        if my_choice == 'q':
-            break
-        MENU_FUNCTIONS[my_choice]()  # call corresponding function (switch)
-
-
-def __run_option_2_for_songs(ansi):
-    # request user input
-    print(' \"Please provide the song and artist name you\'d like to '
-              'search for\" -Fetch\n')
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
-    song = input()
-    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-    artist = input()
-    result = CATALOG.song_listening_time(song, artist)
-    if result[2] is None:
-        if song == '' or artist == '':
-            print('\n * No data found for provided input\n')
-        else:
-            print(f'\n * No data found for \"{song}\" by {artist}\n')
-    else:
-        song, artist, total_seconds = result  # unpack
-        num_listens = CATALOG.num_plays_for_song(song) 
-        time = get_seconds_human_readable(total_seconds)
-        ansi_hour = ansi_with_commas(ansi, time[0])
-        ansi_min = ansi_with_commas(ansi, time[1])
-        ansi_sec = ansi_with_commas(ansi, time[2])
-        ANSI_SONG = ANSI.BRIGHT_GREEN_BOLD + song + ANSI.RESET
-        ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
-        ANSI_NUM = ansi_with_commas(ANSI.RESET, num_listens)
-        print(f'\n  You\'ve listened to {ANSI_SONG} by {ANSI_ARTIST} '
-                f'{ANSI_NUM} times; totaling {ansi_hour} hours, {ansi_min} '
-                f'minutes, and {ansi_sec} seconds!\n')
-
-
-def option_2():
-    '''
-    Provides the user the oppurtunity to query their timing data
-    '''
-    display_option_2_menu()
-    ansi = ANSI.BRIGHT_GREEN_BOLD
-    my_choice = get_choice(list(QueryType), ansi)
-    # prompt user for input based on query typpe
-    if my_choice == QueryType.SONG:
-        __run_option_2_for_songs(ansi)
-    elif my_choice == QueryType.ARTIST:
-        print(' \"Please provide the artist name you\'d like to search for\" '
-              '-Fetch\n')
-        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-        artist = input()
-        result = CATALOG.artist_listening_time(artist)
-        print('\n', result, '\n')
-    elif my_choice == QueryType.ALBUM:
-        print(' \"Please provide the album and artist name you\'d like to '
-              'search for\" -Fetch\n')
-        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Album{ANSI.RESET}: ', end='')
-        album = input()
-        print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
-        artist = input()
-        result = CATALOG.album_listening_time(album, artist)
-        print('\n', result, '\n')
-    else:
-        # my_choice == 'q'
-        return
-    ''' once we've processed the user's above query, prompt for another '''
-    option_2()
-
-
-def display_option_2_menu():
-    '''
-    Prints a list of choices available for option 2 for the user to select
-    '''
-    ansi = ANSI.BRIGHT_GREEN
-    print(f' {ANSI.BRIGHT_GREEN_BOLD}Timing Menu:{ANSI.RESET}')
-    print_menu_choice(1, ansi, 'search for song')
-    print_menu_choice(2, ansi, 'search for artist')
-    print_menu_choice(3, ansi, 'search for album')
-    print_menu_choice(4, ansi, 'return to main menu\n')
-
-
-def option_1():
-    '''
-    Reads in user_info.txt data and prints the result/fun facts to the screen
-    '''
-    res = read_user_info_txt_file()
-    if res is None:
-        print('  * Hmm... Fetch seems to have gotten lost. Try again soon!')
-        return
-    # `res` -> (realname, playcount, track_count, album_count, artist_count)
-    total_n_days = CATALOG.get_total_num_distinct_days()
-    most_streamed_days, num_streams = CATALOG.most_streamed_day_overall()
-    daily_avg = round(res[1] / total_n_days) if total_n_days != 0 else 0
-    ''' Generate ANSI symbols (i.e. Bytey list, arrows) '''
-    BYTEY = get_ansi_bytey(ANSI.RESET, True)
-    ARROWS = [
-        ANSI.GREEN + '⇒' + ANSI.RESET,
-        ANSI.BLUE + '⇒' + ANSI.RESET,
-        ANSI.BRIGHT_PURPLE + '⇒' + ANSI.RESET
-    ]
-    ''' Now, format the user info using ANSI and commas (if numeric). When
-        completed, `ansi` will be a tuple of the structure:
-            -> (realname, playcount, track_count, album_count, artist_count,
-                daily_avg, total_n_days, num_streams)
-    '''
-    ansi = get_opt1_ansi_tuple(res[0], res[1], res[2], res[3], res[4],
-                               daily_avg, total_n_days, num_streams)
-    # Time to print to the screen
-    print_fun_facts(BYTEY, ARROWS, ansi, num_streams, most_streamed_days)
-
-
-def get_opt1_ansi_tuple(realname, playcount, track_count, album_count, 
-                        artist_count, daily_avg, total_n_days, num_streams):
-    '''
-    Returns a tuple containing the following information formatted with ANSI 
-    and commas (if it's a numeric value):
-        * realname
-        * playcount
-        * track_count
-        * album_count
-        * artist_count
-        * daily_avg
-        * total_n_days
-        * num_streams
-    '''
-    ansi = ANSI.CYAN_BOLD
-    ansi_name = f'{ansi}{realname}{ANSI.RESET}'
-    ansi_playcount = ansi_with_commas(ansi, playcount)
-    ansi_n_tracks = ansi_with_commas(ansi, track_count)
-    ansi_n_albums = ansi_with_commas(ansi, album_count)
-    ansi_n_artists = ansi_with_commas(ansi, artist_count)
-    ansi_avg = ansi_with_commas(ansi, daily_avg)
-    ansi_n_days = ansi_with_commas(ansi, total_n_days)
-    ansi_n_streams = ansi_with_commas(ansi, num_streams)
-    return (ansi_name, ansi_playcount, ansi_n_tracks, ansi_n_albums, 
-            ansi_n_artists, ansi_avg, ansi_n_days, ansi_n_streams)
-
-
-def print_fun_facts(BYTEY, ARROWS, ansi, n_streams, most_streamed_days):
-    if n_streams == 0:
-        bytey_4 = f'{BYTEY[4]}'
-    else:
-        # expected behavior
-        f_date = most_streamed_days[0].strftime('%B %d, %Y')  # TODO
-        ansi_date = f'{ANSI.CYAN_BOLD}{f_date}{ANSI.RESET}'
-        bytey_4 = (f'{BYTEY[4]} {ARROWS[2]} you listened to the most music on '
-                   f'{ansi_date} with {ansi[7]} total songs played')
-    # Construct the message
-    msg = f"""\
-   {BYTEY[0]}
-   {BYTEY[1]}Hey there, {ansi[0]}! Here are some fun music stats I dug up \
-about you--
-   {BYTEY[2]} {ARROWS[0]} you've listened to {ansi[1]} tracks over the past \
-{ansi[6]} days, averaging {ansi[5]} tracks listened a day
-   {BYTEY[3]} {ARROWS[1]} you\'ve enjoyed {ansi[2]} unique songs, explored \
-{ansi[3]} different albums, and discovered {ansi[4]} diverse artists
-   {bytey_4}
-  ^^^^^^^^^^^^^^^
-"""
-    print(msg)
-    
-
-# =========== [2] Utility: ==================================================
-
-def display_main_menu():
-    '''
-    Prints a list of the Main Menu choices for the user to choose from
-    '''
-    ansi = ANSI.BRIGHT_CYAN
-    ANSI_MUSIC = f'{ANSI.GREEN}♪{ANSI.BLUE}♪{ANSI.BRIGHT_PURPLE}♪{ANSI.RESET}'
-    print(f' {ANSI.BRIGHT_CYAN_BOLD}Main Menu:{ANSI.RESET}')
-    print_menu_choice(1, ansi, f'fun facts for {USERNAME} {ANSI_MUSIC}')
-    print_menu_choice(2, ansi, 'explore your timing data')
-    print_menu_choice(3, ansi, 'explore your track stats')
-    print_menu_choice(4, ansi, 'delve into your scrobbles')
-    print_menu_choice(5, ansi, 'quit program\n')
-
-
-def print_menu_choice(choice, ansi, choice_description):
-    '''
-    Prints the given menu-choice selection with the formatted ANSI escape code
-    '''
-    print(f'  ‣ {ansi}{choice}{ANSI.RESET}  {choice_description}')
-
-
-def get_choice(menu_choices, ansi):
-    '''
-    Retrieves the user's menu choice from the provided list of choices
-    '''
-    result = None
-    ansi_enter = f' {ansi}Enter Option #:{ANSI.RESET} '
-    while True:
-        choice = input(ansi_enter)
-        if choice.isdigit():
-            if int(choice) == len(menu_choices) + 1:
-                result = 'q'
-                break
-            if 1 <= int(choice) <= len(menu_choices):
-                result = menu_choices[int(choice) - 1]
-                break
-        # if we get here, the user did not type in an int. display message
-        print(f'\n  * {choice} isn\'t a valid choice\n')
-    print()
-    return result
-
-
-def read_user_info_txt_file():
+def _read_user_info_txt_file():
     '''
     Extracts information from the user's user_info.txt file. If the file does 
     not exist, return None; else, the returned tuple will include:
@@ -408,61 +358,164 @@ def read_user_info_txt_file():
         return None
 
 
-def bytey_welcome_msg():
-    BYTEY = get_ansi_bytey(ANSI.BRIGHT_CYAN_BOLD, False)
-    GRASS = f'{ANSI.BRIGHT_CYAN_BOLD}^^^^^^^^^^^^^^^{ANSI.RESET}'
-    msg = f""" \
- /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
- |                              Welcome to Fetch.fm!                                  |
- |                                                                                    |
- |   My name's Bytetholomew, but you can call me `Fetch` for short! I'm the company   |
- |  mascot, but today's my day off so I thought I'd spend it tagging along with you.  |
- |                                                                                    |
- |   Please select one of the following menu options to get started using Fetch.fm!   |
-  \\__________________________________________   _____________________________________/
-                                             | /
-                               {BYTEY[0]} |/
-                               {BYTEY[1]}
-                               {BYTEY[2]}
-                               {BYTEY[3]}
-                               {BYTEY[4]}
-                              {GRASS}
-"""
-    print_text_animated(f'\n{msg}\n', 0)
+def _get_opt1_ansi_tuple(realname, playcount, track_count, album_count, 
+                        artist_count, daily_avg, total_n_days, num_streams):
+    '''
+    Returns a tuple containing the following information formatted with ANSI 
+    and commas (if it's a numeric value):
+        * realname
+        * playcount
+        * track_count
+        * album_count
+        * artist_count
+        * daily_avg
+        * total_n_days
+        * num_streams
+    '''
+    ansi = ANSI.CYAN_BOLD
+    ansi_name = f'{ansi}{realname}{ANSI.RESET}'
+    ansi_playcount = format_num(ansi, playcount)
+    ansi_n_tracks = format_num(ansi, track_count)
+    ansi_n_albums = format_num(ansi, album_count)
+    ansi_n_artists = format_num(ansi, artist_count)
+    ansi_avg = format_num(ansi, daily_avg)
+    ansi_n_days = format_num(ansi, total_n_days)
+    ansi_n_streams = format_num(ansi, num_streams)
+    return (ansi_name, ansi_playcount, ansi_n_tracks, ansi_n_albums, 
+            ansi_n_artists, ansi_avg, ansi_n_days, ansi_n_streams)
 
 
-def print_text_animated(text, end_delay_in_secs):
-    if __DEBUGGING:
-        print(text, end='')
+def _print_fun_facts(BYTEY, ARROWS, ansi, n_streams, most_streamed_days):
+    if n_streams == 0:
+        bytey_4 = f'{BYTEY[4]}'
     else:
-        LAST_INDEX = len(text) - 1
-        for i, ch in enumerate(text):
-            if i == LAST_INDEX:
-                sleep(end_delay_in_secs)
-            elif ch != ' ':
-                # only sleep for visible chars
-                sleep(0.009)
-            print(ch, end='', flush=True)
+        # expected behavior
+        f_date = most_streamed_days[0].strftime('%B %d, %Y')  # TODO
+        ansi_date = f'{ANSI.CYAN_BOLD}{f_date}{ANSI.RESET}'
+        bytey_4 = (f'{BYTEY[4]} {ARROWS[2]} you listened to the most music on '
+                   f'{ansi_date} with {ansi[7]} total songs played')
+    # Construct the message
+    msg = f"""\
+   {BYTEY[0]}
+   {BYTEY[1]}Hey there, {ansi[0]}! Here are some fun music stats I dug up \
+about you--
+   {BYTEY[2]} {ARROWS[0]} you've listened to {ansi[1]} tracks over the past \
+{ansi[6]} days, averaging {ansi[5]} tracks listened a day
+   {BYTEY[3]} {ARROWS[1]} you\'ve enjoyed {ansi[2]} unique songs, explored \
+{ansi[3]} different albums, and discovered {ansi[4]} diverse artists
+   {bytey_4}
+  ^^^^^^^^^^^^^^^
+"""
+    print(msg)
 
 
-def ansi_with_commas(ansi, num):
+def _display_option_2_menu():
     '''
-    Formats the given number with commas and displays it with ANSI
+    Prints a list of choices available for option 2 for the user to select
     '''
-    return f'{ansi}{format(num, ",")}{ANSI.RESET}'
+    ansi = ANSI.BRIGHT_GREEN
+    print(f' {ANSI.BRIGHT_GREEN_BOLD}Timing Menu:{ANSI.RESET}')
+    print_menu_choice(1, ansi, 'search for song')
+    print_menu_choice(2, ansi, 'search for artist')
+    print_menu_choice(3, ansi, 'search for album')
+    print_menu_choice(4, ansi, 'return to main menu\n')
 
 
-def get_seconds_human_readable(total_seconds):
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return int(hours), int(minutes), int(seconds)
+def _run_option_2_for_songs():
+    # request user input
+    print(' "Please provide the song and artist name you\'d like to search '
+          'for" -Fetch\n')
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Song{ANSI.RESET}: ', end='')
+    song = input()
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+    artist = input()
+    # generate result for the provided song and artist
+    result = CATALOG.song_listening_time(song, artist)
+    if result[2] is None:
+        # if we get here, no data was found for the provided input
+        if song == '' or artist == '':
+            tag = 'provided input'
+        else:
+            tag = f'"{song}" by {artist}'
+        print(f'\n * No data found for {tag}\n')
+        return
+    ''' if we get here, the user has useful data for the provided input '''
+    song, artist, total_seconds = result  # unpack
+    time = get_seconds_human_readable(total_seconds)
+    num_listens = CATALOG.num_plays_for_song(song) 
+    num_listens = format_num(ANSI.RESET, num_listens)
+    ''' format the retrieved data  '''
+    ansi = ANSI.BRIGHT_GREEN_BOLD
+    ANSI_HR = format_num(ansi, time[0]) + ansi + 'h' + ANSI.RESET
+    ANSI_MIN = format_num(ansi, time[1]) + ansi + 'm' + ANSI.RESET
+    ANSI_SEC = format_num(ansi, time[2]) + ansi + 's' + ANSI.RESET
+    ANSI_SONG = ansi + song + ANSI.RESET
+    ANSI_ARTIST = ansi + artist + ANSI.RESET
+    print(f'\n  You\'ve listened to {ANSI_SONG} by {ANSI_ARTIST} {num_listens}'
+          f' times; totaling {ANSI_HR}, {ANSI_MIN}, {ANSI_SEC}!\n')
+
+# todo--
+def _run_option_2_for_artists():
+    ansi = ANSI.BRIGHT_GREEN_BOLD
+    # request user input
+    print(' \"Please provide the artist name you\'d like to search for\" '
+              '-Fetch\n')
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+    artist = input()
+    result = CATALOG.artist_listening_time(artist)
+    if result[1] == 0:
+        # if we get here, no data was found for the provided input
+        if artist == '':
+            tag = 'provided input'
+        else:
+            tag = f'\"{artist}\"'
+        print(f'\n * No data found for {tag}\n')
+        return
+    # if we get here, we received useful data for the provided artist
+    artist, total_seconds, _ = result  # unpack
+    time = get_seconds_human_readable(total_seconds)
+    ansi_hr = format_num(ansi, time[0])
+    ansi_min = format_num(ansi, time[1])
+    ansi_sec = format_num(ansi, time[2])
+    num_listens = CATALOG.num_plays_for_artist(artist) 
+    NUM_LISTENS = format_num(ANSI.RESET, num_listens)
+    ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
+    print(f'\n  You\'ve listened to {ANSI_ARTIST} {NUM_LISTENS} times; '
+          f'totaling {ansi_hr} hours, {ansi_min} minutes, and {ansi_sec} seconds!\n')
 
 
-def seconds_to_days(total_seconds):
-    NUM_SECONDS_IN_DAY = 86400
-    num_days = total_seconds / NUM_SECONDS_IN_DAY
-    return num_days
+def _run_option_2_for_albums():
+    ansi = ANSI.BRIGHT_GREEN_BOLD
+    # request user input
+    print(' \"Please provide the album and artist name you\'d like to search '
+          'for\" -Fetch\n')
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Album{ANSI.RESET}: ', end='')
+    album = input()
+    print(f'   ⇒ {ANSI.BRIGHT_GREEN}Artist{ANSI.RESET}: ', end='')
+    artist = input()
+    result = CATALOG.album_listening_time(album, artist)
+    if result[2] == 0:
+        # if we get here, no data was found for the provided input
+        if album == '' or artist == '':
+            tag = 'provided input'
+        else:
+            tag = f'\"{album}\" by {artist}'
+        print(f'\n * No data found for {tag}\n')
+        return
+    # if we get here, we received useful data for the provided album and artist
+    album, artist, total_seconds, playcount, _ = result  # unpack
+    time = get_seconds_human_readable(total_seconds)
+    ''' format retrieved data with ANSI escape codes '''
+    ansi_hr = format_num(ansi, time[0])
+    ansi_min = format_num(ansi, time[1])
+    ansi_sec = format_num(ansi, time[2])
+    PLAYCOUNT = format_num(ANSI.RESET, playcount)
+    ANSI_ALBUM = ANSI.BRIGHT_GREEN_BOLD + album + ANSI.RESET
+    ANSI_ARTIST = ANSI.BRIGHT_GREEN_BOLD + artist + ANSI.RESET
+    print(f'\n  You\'ve listened to {ANSI_ALBUM} by {ANSI_ARTIST} '
+          f'{PLAYCOUNT} times; totaling {ansi_hr} hours, {ansi_min} '
+          f'minutes, and {ansi_sec} seconds!\n')
 
-
+    
 if __name__ == '__main__':
     main()
